@@ -9,3 +9,6 @@ Refer the package.json file for the node version to use, with a supported node r
 ```
 npm run build
 ```
+
+## Additional references
+[Backend API project](https://github.com/SufyaanKhateeb/placement-app-api)
