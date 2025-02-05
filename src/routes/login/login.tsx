@@ -2,17 +2,17 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useLoginMutation } from "./queryHooks";
 import { useQueryClient } from "@tanstack/react-query";
 import Loading from "@/components/ui/loading";
-import { AlertCircle, HomeIcon } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Icons } from "@/components/icons";
 import z from "zod";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useAuthContext } from "@/auth/hooks";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { setIsAuthenticated } from "@/auth/auth-actions";
 
 export function LoginPage() {
     const location = useLocation();
@@ -21,10 +21,7 @@ export function LoginPage() {
 
     return (
         <>
-            <div className="container max-w-8xl relative flex flex-col items-center justify-center sm:grid lg:grid-cols-2 lg:px-0">
-                <Link to="/" className={cn(buttonVariants({ variant: "ghost" }), "h-8 w-8 px-0 absolute right-8 top-4")}>
-                    <HomeIcon />
-                </Link>
+            <div className="container max-w-7xl h-full relative flex flex-col items-center justify-center sm:grid lg:grid-cols-2 lg:px-0">
                 <div className="relative hidden h-full flex-col justify-center p-10 lg:flex">
                     <div className="relative z-20 max-w-96 mr-auto">
                         <blockquote className="space-y-2">
@@ -79,7 +76,6 @@ type UserAuthFormProps = React.HTMLAttributes<HTMLDivElement> & {
 };
 
 function LoginForm({ className, ...props }: UserAuthFormProps) {
-    const { setIsAuthenticated } = useAuthContext();
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 

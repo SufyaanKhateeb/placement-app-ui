@@ -9,6 +9,7 @@ import { LoginPage } from "./routes/login/login";
 import ProtectedPage from "./routes/pages/protected-page";
 import { Toaster } from "./components/ui/toaster";
 import { RegisterPage } from "./routes/register/register";
+import Authenticated from "./auth/Authenticated";
 import AuthRequired from "./auth/auth-required";
 import NotAuthRequired from "./auth/not-auth-required";
 import { WithAuthData } from "./auth/with-auth-data";
@@ -26,12 +27,13 @@ const router = createBrowserRouter([
                 index: true,
                 Component: Root,
             },
-        ],
+            {
+                path: "/error",
+                element: <ErrorPage />,
     },
     {
-        id: "authenticated-routes",
-        Component: WithAuthData,
-        path: "/",
+                id: "authentication-checked-routes",
+                Component: Authenticated,
         errorElement: <ErrorPage />,
         children: [
             {
@@ -49,9 +51,7 @@ const router = createBrowserRouter([
             },
         ],
     },
-    {
-        path: "/error",
-        element: <ErrorPage />,
+        ],
     },
 ]);
 

@@ -1,25 +1,31 @@
 import { axiosInstance } from "@/config/axios";
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 
+type User = {
+    email: string;
+    firstName: string;
+    id: number;
+    lastName: string;
+    uType: string;
+    verified: boolean;
+};
+
 async function getUser() {
     try {
         await axiosInstance.post("/refresh", {});
         const res = await axiosInstance.get("/user");
         return res.data;
     } catch (error) {
-        console.log(error)
-        throw new Error("Not authorized. Please login or register")
+        console.log(error);
+        throw new Error("Not authorized. Please login or register");
     }
 }
 
-type CustomQueryOptions = Omit<UseQueryOptions, "queryKey" | "someOtherField">;
-
-export const useUserQuery = (customOptions: CustomQueryOptions = {}) =>
-    useQuery({
-        queryKey: ["getUser"],
+export const useGetUserQuery = (customOptions: UseQueryOptions<User, Error>) =>
+    useQuery<User, Error>({
         queryFn: getUser,
         enabled: false,
         retry: false,
-        refetchOnWindowFocus: false,
+        refetchOnWindowFocus: true,
         ...customOptions,
     });

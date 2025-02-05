@@ -1,18 +1,18 @@
-import { useAuthContext } from "@/auth/hooks";
 import { Icons } from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Loading from "@/components/ui/loading";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, HomeIcon } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { Link, redirect, useLocation } from "react-router-dom";
 import z from "zod";
 import { useRegisterMutation } from "./queryHooks";
+import { setIsAuthenticated } from "@/auth/auth-actions";
 
 export function RegisterPage() {
     const location = useLocation();
@@ -28,10 +28,7 @@ export function RegisterPage() {
                 <Image src="/examples/authentication-light.png" width={1280} height={843} alt="Authentication" className="block dark:hidden" />
                 <Image src="/examples/authentication-dark.png" width={1280} height={843} alt="Authentication" className="hidden dark:block" />
             </div> */}
-            <div className="container max-w-8xl relative flex flex-col items-center justify-center sm:grid lg:grid-cols-2 lg:px-0">
-                <Link to="/" className={cn(buttonVariants({ variant: "ghost" }), "h-8 w-8 px-0 absolute right-8 top-4")}>
-                    <HomeIcon />
-                </Link>
+            <div className="container max-w-7xl h-full relative flex flex-col items-center justify-center sm:grid lg:grid-cols-2 lg:px-0">
                 <div className="relative hidden h-full flex-col justify-center p-10 lg:flex">
                     {/* <div className="absolute inset-0 bg-muted" /> */}
                     {/* <div className="relative z-20 flex items-center text-lg font-medium">
@@ -98,7 +95,6 @@ type UserAuthFormProps = React.HTMLAttributes<HTMLDivElement> & {
 };
 
 function RegisterForm({ className, ...props }: UserAuthFormProps) {
-    const { setIsAuthenticated } = useAuthContext();
     const queryClient = useQueryClient();
 
     const {
