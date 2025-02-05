@@ -12,9 +12,15 @@ import { RegisterPage } from "./routes/register/register";
 import Authenticated from "./auth/Authenticated";
 import AuthRequired from "./auth/auth-required";
 import NotAuthRequired from "./auth/not-auth-required";
-import { WithAuthData } from "./auth/with-auth-data";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 const queryClient = new QueryClient();
+
+// initialize and register GSAP plugin
+gsap.registerPlugin(useGSAP);
+gsap.registerPlugin(ScrollTrigger);
 
 const router = createBrowserRouter([
     {
@@ -30,27 +36,27 @@ const router = createBrowserRouter([
             {
                 path: "/error",
                 element: <ErrorPage />,
-    },
-    {
+            },
+            {
                 id: "authentication-checked-routes",
                 Component: Authenticated,
-        errorElement: <ErrorPage />,
-        children: [
-            {
-                path: "login",
-                element: notAuthenticatedRequired(<LoginPage />),
+                errorElement: <ErrorPage />,
+                children: [
+                    {
+                        path: "login",
+                        element: notAuthenticatedRequired(<LoginPage />),
+                    },
+                    {
+                        path: "register",
+                        element: notAuthenticatedRequired(<RegisterPage />),
+                    },
+                    {
+                        path: "protected",
+                        element: authenticatedRequired(<ProtectedPage />),
+                        loader: authLoader,
+                    },
+                ],
             },
-            {
-                path: "register",
-                element: notAuthenticatedRequired(<RegisterPage />),
-            },
-            {
-                path: "protected",
-                element: authenticatedRequired(<ProtectedPage />),
-                loader: authLoader,
-            },
-        ],
-    },
         ],
     },
 ]);

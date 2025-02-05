@@ -3,9 +3,9 @@ import { Outlet } from "react-router-dom";
 
 const Layout = () => {
     return (
-        <div className="flex flex-col h-screen w-screen">
+        <div className="main-layout-container flex flex-col h-screen max-w-screen overflow-auto">
             <Header />
-            <div className="flex flex-1 w-full">
+            <div className="flex flex-1 flex-col mt-6 w-full h-full">
                 <Outlet />
             </div>
             {/* <footer>monkey</footer> */}

@@ -5,13 +5,19 @@ import {
     Link,
     // useLocation
 } from "react-router-dom";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 
 export function MainNav() {
     // const { pathname } = useLocation();
 
+    useGSAP(() => {
+        gsap.fromTo(".header-site-logo-container", { opacity: 0, duration: 0.3 }, { opacity: 1 });
+    });
+
     return (
         <div className="mr-4 py-4 hidden md:flex">
-            <Link to="/" className="mr-4 text-primary flex items-center space-x-2 lg:mr-6">
+            <Link to="/" className="header-site-logo-container mr-4 text-primary flex items-center space-x-2 lg:mr-6">
                 <Icons.logo className="h-6 w-6" />
                 <span className="hidden font-bold md:inline-block">{siteConfig.name}</span>
             </Link>
