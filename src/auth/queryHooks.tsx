@@ -6,15 +6,21 @@ type User = {
     firstName: string;
     id: number;
     lastName: string;
-    uType: string;
+    role: "user" | "admin";
     verified: boolean;
 };
 
-async function getUser() {
+type UserResponse = Omit<User, "role"> & {
+    role?: User["role"];
+    uType?: "student" | User["role"];
+};
+
+async function getUser(): Promise<User> {
     try {
         await axiosInstance.post("/refresh", {});
-        const res = await axiosInstance.get("/user");
-        return res.data;
+        const res = await axiosInstance.get<UserResponse>("/user");
+        const { role, uType, ...profile } = res.data;
+        return { ...profile, role: role ?? (uType === "admin" ? "admin" : "user") };
     } catch (error) {
         console.log(error);
         throw new Error("Not authorized. Please login or register");

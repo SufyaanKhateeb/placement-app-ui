@@ -148,7 +148,7 @@ function LoginForm({ className, fromUrl, admin, ...props }: UserAuthFormProps) {
                         <Input
                             {...register("email")}
                             id="email"
-                            placeholder="name@college.com"
+                            placeholder="name@example.com"
                             type="email"
                             autoCapitalize="none"
                             autoComplete="email"

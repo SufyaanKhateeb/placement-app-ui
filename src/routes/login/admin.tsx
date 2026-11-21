@@ -23,7 +23,7 @@ export function AdminPage() {
     const { data: connection, isError: connectionError } = useQuery({
         queryKey: ["adminGoogleConnection", user?.id],
         queryFn: async () => (await axiosInstance.get<{ linked: boolean }>("/auth/google/admin/link")).data,
-        enabled: user?.uType === "admin",
+        enabled: user?.role === "admin",
         retry: false,
     });
     const connect = useMutation({
@@ -36,7 +36,7 @@ export function AdminPage() {
 
     if (isPending) return null;
     if (!user) return <Navigate to="/admin/login" replace />;
-    if (user.uType !== "admin") {
+    if (user.role !== "admin") {
         return (
             <section className="mx-auto max-w-md px-6 py-12">
                 <h1 className="text-xl font-semibold">Admin access required</h1>
