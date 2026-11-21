@@ -6,6 +6,7 @@ import Root from "./routes/root";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { LoginPage } from "./routes/login/login";
+import { AdminPage } from "./routes/login/admin";
 import ProtectedPage from "./routes/pages/protected-page";
 import { Toaster } from "./components/ui/toaster";
 import { RegisterPage } from "./routes/register/register";
@@ -45,6 +46,14 @@ const router = createBrowserRouter([
                     {
                         path: "login",
                         element: notAuthenticatedRequired(<LoginPage />),
+                    },
+                    {
+                        path: "admin/login",
+                        element: <LoginPage admin />,
+                    },
+                    {
+                        path: "admin",
+                        element: <AdminPage />,
                     },
                     {
                         path: "register",

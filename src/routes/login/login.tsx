@@ -1,23 +1,54 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useLoginMutation } from "./queryHooks";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Loading from "@/components/ui/loading";
 import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Icons } from "@/components/icons";
 import z from "zod";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { setIsAuthenticated } from "@/auth/auth-actions";
 
-export function LoginPage() {
+import { axiosInstance } from "@/config/axios";
+
+const fallbackAPI = "/api/v1";
+
+function GoogleSignInButton({ admin }: { admin: boolean }) {
+    const { data } = useQuery({
+        queryKey: ["authProviders"],
+        queryFn: async () => (await axiosInstance.get<{ google: boolean }>("/auth/providers")).data,
+        retry: false,
+        staleTime: 60_000,
+    });
+
+    if (!data?.google) return null;
+
+    const api = (axiosInstance.defaults.baseURL || fallbackAPI).replace(/\/$/, "");
+    return (
+        <Button variant="outline" asChild>
+            <a href={api + (admin ? "/auth/google/admin" : "/auth/google")}>Continue with Google</a>
+        </Button>
+    );
+}
+
+export function LoginPage({ admin = false }: { admin?: boolean }) {
     const location = useLocation();
     const params = new URLSearchParams(location.search);
-    const from = params.get("from") || "/";
+    const from = admin ? "/admin" : params.get("from") || "/";
+    const providerError = params.get("error");
+    const googleError = providerError === "google_admin_unlinked"
+        ? "Sign in with your admin password first to connect Google."
+        : providerError === "google_admin_session_expired"
+            ? "Your admin session expired. Sign in again to connect Google."
+            : providerError === "google_link_required"
+        ? "This email already belongs to an account. Sign in with your existing method."
+        : providerError === "google_failed"
+            ? "Google sign-in could not be completed. Please try again."
+            : null;
 
     return (
         <>
@@ -36,27 +67,27 @@ export function LoginPage() {
                 <div className="lg:p-8">
                     <div className="mx-auto flex w-full flex-col justify-center space-y-6 max-w-[350px]">
                         <div className="flex flex-col space-y-2 text-center">
-                            <h1 className="text-4xl font-semibold">Welcome back</h1>
+                            <h1 className="text-4xl font-semibold">{admin ? "Admin sign-in" : "Welcome back"}</h1>
                             <p className="text-sm text-muted-foreground">Please enter your details below to sign in.</p>
                         </div>
-                        <LoginForm fromUrl={from} />
-                        <p className="px-8 text-center text-sm text-muted-foreground">
-                            Don't have an account?{" "}
-                            <Link to="/register" className="underline underline-offset-4 hover:text-primary">
-                                Register
-                            </Link>
-                        </p>
-                        {/* <p className="px-8 text-center text-sm text-muted-foreground">
-                            By clicking continue, you agree to our{" "}
-                            <Link to="/terms" className="underline underline-offset-4 hover:text-primary">
-                                Terms of Service
-                            </Link>{" "}
-                            and{" "}
-                            <Link to="/privacy" className="underline underline-offset-4 hover:text-primary">
-                                Privacy Policy
-                            </Link>
-                            .
-                        </p> */}
+                        {googleError && (
+                            <Alert variant="destructive">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>{googleError}</AlertDescription>
+                            </Alert>
+                        )}
+                        <GoogleSignInButton admin={admin} />
+                        <LoginForm fromUrl={from} admin={admin} />
+                        <div className="flex justify-center gap-3 text-sm text-muted-foreground">
+                            {admin ? (
+                                <Link to="/login" className="underline underline-offset-4">User sign-in</Link>
+                            ) : (
+                                <>
+                                    <Link to="/register" className="underline underline-offset-4">Register</Link>
+                                    <Link to="/admin/login" className="underline underline-offset-4">Admin sign-in</Link>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -73,9 +104,10 @@ type LoginForm = z.infer<typeof LoginFormSchema>;
 
 type UserAuthFormProps = React.HTMLAttributes<HTMLDivElement> & {
     fromUrl?: string;
+    admin: boolean;
 };
 
-function LoginForm({ className, ...props }: UserAuthFormProps) {
+function LoginForm({ className, fromUrl, admin, ...props }: UserAuthFormProps) {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
@@ -87,9 +119,9 @@ function LoginForm({ className, ...props }: UserAuthFormProps) {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["getUser"] });
             setIsAuthenticated(true);
-            navigate(props.fromUrl || "/");
+            navigate(fromUrl || "/");
         },
-    });
+    }, admin);
 
     const {
         register,
@@ -149,18 +181,6 @@ function LoginForm({ className, ...props }: UserAuthFormProps) {
                     </Button>
                 </div>
             </form>
-            <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-                </div>
-            </div>
-            <Button variant="outline" type="button" disabled={isSubmitting}>
-                <Icons.gitHub className="mr-2 h-4 w-4" />
-                GitHub
-            </Button>
         </div>
     );
 }

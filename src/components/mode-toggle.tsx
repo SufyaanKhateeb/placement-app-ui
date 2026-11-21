@@ -3,14 +3,10 @@ import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/components/theme-provider";
-import { useCallback } from "react";
 
 export function ModeToggle() {
     const { setTheme } = useTheme();
 
-    const changeTheme = useCallback<(e: React.MouseEvent<HTMLElement>, theme: "light" | "dark" | "system") => void>((e, theme) => {
-        setTheme(theme);
-    }, [setTheme]);
 
     return (
         <DropdownMenu>
@@ -22,9 +18,9 @@ export function ModeToggle() {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={(e) => changeTheme(e, "light")}>Light</DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => changeTheme(e, "dark")}>Dark</DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => changeTheme(e, "system")}>System</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme( "light")}>Light</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme( "dark")}>Dark</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme( "system")}>System</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
     );

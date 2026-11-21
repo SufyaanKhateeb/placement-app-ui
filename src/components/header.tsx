@@ -9,6 +9,7 @@ import gsap from "gsap";
 import { useTheme } from "./theme-provider";
 import { useEffect, useRef } from "react";
 import { useAuthStore } from "@/auth/auth-store";
+import { useGetUserQuery } from "@/auth/queryHooks";
 import ProfileButton from "./profile-button";
 
 function Header() {
@@ -17,7 +18,9 @@ function Header() {
     const navigate = useNavigate();
     const location = useLocation();
     const authenticated = useAuthStore((store) => store.isAuthenticated);
-    const authActionsVisible = !authenticated && location.pathname !== "/login" && location.pathname !== "/register";
+    const { data: user, isPending } = useGetUserQuery({ queryKey: ["getUser"] });
+    const isSignInPage = ["/login", "/register", "/admin/login"].includes(location.pathname);
+    const authActionsVisible = !isPending && !user && !authenticated && !isSignInPage;
 
     useEffect(() => {
         const tl = gsap

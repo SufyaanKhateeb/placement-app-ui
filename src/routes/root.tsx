@@ -1,6 +1,4 @@
 import ShapesAnimation from "@/components/root-ui/shapes-animation";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 
 export default function Root() {
     return (

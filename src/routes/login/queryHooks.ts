@@ -7,9 +7,9 @@ type loginUserDto = {
     password: string;
 };
 
-const loginUser = async (user: loginUserDto) => {
+const loginUser = async (user: loginUserDto, admin: boolean) => {
     try {
-        await axiosInstance.post("/login", user);
+        await axiosInstance.post(admin ? "/login-admin" : "/login", user);
     } catch (error) {
         if (axios.isAxiosError(error) && error.response?.data) {
             if ((error.response.data.error as string).startsWith("invalid payload")) {
@@ -27,8 +27,8 @@ const loginUser = async (user: loginUserDto) => {
     }
 };
 
-export const useLoginMutation = (customOptions: UseMutationOptions<void, Error, loginUserDto, unknown> = {}) =>
+export const useLoginMutation = (customOptions: UseMutationOptions<void, Error, loginUserDto, unknown> = {}, admin = false) =>
     useMutation({
-        mutationFn: loginUser,
+        mutationFn: user => loginUser(user, admin),
         ...customOptions,
     });
