@@ -7,6 +7,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { LoginPage } from "./routes/login/login";
 import { AdminPage } from "./routes/login/admin";
+import { AdminFormsPage, FormEditorPage } from "./routes/forms/admin-forms";
+import { PublishedFormsPage, PublishedFormPage } from "./routes/forms/published";
 import ProtectedPage from "./routes/pages/protected-page";
 import { Toaster } from "./components/ui/toaster";
 import { RegisterPage } from "./routes/register/register";
@@ -58,6 +60,24 @@ const router = createBrowserRouter([
                     {
                         path: "register",
                         element: notAuthenticatedRequired(<RegisterPage />),
+                    },
+                    {
+                        path: "admin/forms",
+                        element: <AdminFormsPage />,
+                    },
+                    {
+                        path: "admin/forms/:id",
+                        element: <FormEditorPage />,
+                    },
+                    {
+                        path: "forms",
+                        element: authenticatedRequired(<PublishedFormsPage />),
+                        loader: authLoader,
+                    },
+                    {
+                        path: "forms/:id",
+                        element: authenticatedRequired(<PublishedFormPage />),
+                        loader: authLoader,
                     },
                     {
                         path: "protected",

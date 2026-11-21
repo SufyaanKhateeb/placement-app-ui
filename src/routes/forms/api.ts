@@ -1,0 +1,66 @@
+import { isAxiosError } from "axios";
+import { axiosInstance } from "@/config/axios";
+
+export const fieldTypes = [
+    { value: "text", label: "Text" },
+    { value: "boolean", label: "Yes or no" },
+    { value: "integer", label: "Whole number" },
+    { value: "numeric", label: "Decimal number" },
+    { value: "date", label: "Date" },
+    { value: "timestamptz", label: "Date and time" },
+] as const;
+
+export type FieldType = (typeof fieldTypes)[number]["value"];
+
+export type FormField = {
+    id: string;
+    label: string;
+    type: FieldType;
+    required: boolean;
+};
+
+export type FormDefinition = {
+    title: string;
+    description: string;
+    fields: FormField[];
+};
+
+export type FormSummary = {
+    id: number;
+    title: string;
+    hasDraft: boolean;
+    publishedVersion: number;
+};
+
+export type AdminForm = {
+    id: number;
+    revision: number;
+    draft: FormDefinition | null;
+    publishedVersion: number;
+    published: FormDefinition | null;
+};
+
+export type PublishedForm = {
+    id: number;
+    version: number;
+    definition: FormDefinition;
+};
+
+export const adminFormsPath = "/admin/forms";
+export const publishedFormsPath = "/forms";
+
+export function requestError(error: unknown, fallback: string) {
+    if (isAxiosError<{ error?: string }>(error)) {
+        return error.response?.data?.error || fallback;
+    }
+    return fallback;
+}
+
+export function isDraftConflict(error: unknown) {
+    return isAxiosError(error) && error.response?.status === 409;
+}
+
+export async function getAdminForm(id: string) {
+    const response = await axiosInstance.get<AdminForm>(adminFormsPath + "/" + id);
+    return response.data;
+}

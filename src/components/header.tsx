@@ -85,6 +85,7 @@ function Header() {
                                 <span className="sr-only">Twitter</span>
                             </div>
                         </Link>
+                        {user && <Button size="sm" variant="ghost" asChild><Link to="/forms">Forms</Link></Button>}
                         <ModeToggle />
                         <Button className={cn("ml-2", { hidden: !authActionsVisible })} size="sm" variant="ghost" onClick={() => navigate("/login")}>
                             Log in
@@ -142,4 +143,5 @@ export default Header;
 //     {/* <div className="text-primary flex items-center">
 //         <p className="text-xl font-bold ml-2">Placement App</p>
 //     </div> */}
-//     <ModeToggle />
+//     {user && <Button size="sm" variant="ghost" asChild><Link to="/forms">Forms</Link></Button>}
+                        <ModeToggle />

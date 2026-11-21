@@ -65,6 +65,7 @@ export function AdminPage() {
     return (
         <section className="mx-auto max-w-md space-y-5 px-6 py-12">
             <h1 className="text-2xl font-semibold">Admin account</h1>
+            <Button variant="outline" asChild><Link to="/admin/forms">Manage forms</Link></Button>
             {connection?.linked ? (
                 <p role="status" className="text-sm text-muted-foreground">Google is connected. You can use it to sign in as an admin.</p>
             ) : (
