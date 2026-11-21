@@ -27,6 +27,19 @@ function previewValue(field: FormField, value: string) {
     }
 }
 
+function validationHint(field: FormField) {
+    const rules = field.rules;
+    if (!rules) return "";
+    const hints: string[] = [];
+    if (rules.minLength !== undefined) hints.push("At least " + rules.minLength + " characters");
+    if (rules.maxLength !== undefined) hints.push("At most " + rules.maxLength + " characters");
+    const date = field.type === "date" || field.type === "timestamptz";
+    const format = (value: string) => field.type === "timestamptz" ? new Date(value).toLocaleString() : value;
+    if (rules.min) hints.push((date ? "From " : "Minimum ") + format(rules.min));
+    if (rules.max) hints.push((date ? "Through " : "Maximum ") + format(rules.max));
+    return hints.join(" · ");
+}
+
 export function FormPreview({ definition, allowValidation = false }: {
     definition: FormDefinition;
     allowValidation?: boolean;
@@ -66,13 +79,15 @@ export function FormPreview({ definition, allowValidation = false }: {
                 const id = previewID + "-" + field.id;
                 const value = values[field.id] ?? "";
                 const error = validation.data?.errors[field.id];
+                const hint = validationHint(field);
+                const describedBy = [hint && id + "-hint", error && id + "-error"].filter(Boolean).join(" ") || undefined;
                 const inputType = { text: "text", boolean: "text", integer: "number", numeric: "text", date: "date", timestamptz: "datetime-local" }[field.type];
                 return (
                     <div key={field.id} className="space-y-2">
                         <Label htmlFor={id}>{field.label || "Untitled field"}{field.required && " (required)"}</Label>
                         {field.type === "boolean" ? (
                             <select id={id} className={selectClass} value={value} disabled={disabled}
-                                aria-invalid={!!error} aria-describedby={error ? id + "-error" : undefined}
+                                aria-invalid={!!error} aria-describedby={describedBy}
                                 onChange={event => setField(field.id, event.target.value)}>
                                 <option value="">Select an answer</option>
                                 <option value="true">Yes</option>
@@ -82,9 +97,10 @@ export function FormPreview({ definition, allowValidation = false }: {
                             <Input id={id} type={inputType} step={field.type === "integer" ? 1 : undefined}
                                 inputMode={field.type === "numeric" ? "decimal" : undefined}
                                 value={value} disabled={disabled} aria-invalid={!!error}
-                                aria-describedby={error ? id + "-error" : undefined}
+                                aria-describedby={describedBy}
                                 onChange={event => setField(field.id, event.target.value)} />
                         )}
+                        {hint && <p id={id + "-hint"} className="text-xs text-muted-foreground">{hint}</p>}
                         {error && <p id={id + "-error"} className="text-sm text-destructive">{error}</p>}
                     </div>
                 );

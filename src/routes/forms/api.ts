@@ -12,11 +12,20 @@ export const fieldTypes = [
 
 export type FieldType = (typeof fieldTypes)[number]["value"];
 
+export type FieldRules = {
+    minLength?: number;
+    maxLength?: number;
+    pattern?: string;
+    min?: string;
+    max?: string;
+};
+
 export type FormField = {
     id: string;
     label: string;
     type: FieldType;
     required: boolean;
+    rules?: FieldRules;
 };
 
 export type FormDefinition = {

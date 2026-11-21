@@ -1,19 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { ChevronLeft, CircleCheck, Eye, FileText, Pencil, Plus } from "lucide-react";
 import type { PropsWithChildren } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { useGetUserQuery } from "@/auth/queryHooks";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { axiosInstance } from "@/config/axios";
-import { adminFormsPath, fieldTypes, getAdminForm, isDraftConflict, requestError } from "./api";
+import { adminFormsPath, getAdminForm, isDraftConflict, requestError } from "./api";
 import type { AdminForm, FieldType, FormDefinition, FormField, FormSummary } from "./api";
 import { FormPreview } from "./form-preview";
+import { BuilderWorkspace } from "./builder-workspace";
 
-const presets = ["Name", "Email", "Group", "Subgroup"];
-const selectClass = "h-10 rounded-md border border-input bg-background px-3 text-sm";
 
 function AdminFormsGuard({ children }: PropsWithChildren) {
     const { data: user, isPending } = useGetUserQuery({ queryKey: ["getUser"] });
@@ -49,7 +47,7 @@ function AdminFormsList() {
                 <div><Link to="/admin" className="text-sm text-muted-foreground hover:underline">Admin account</Link>
                     <h1 className="mt-2 text-2xl font-semibold">Forms</h1></div>
                 <Button onClick={() => create.mutate()} disabled={create.isPending}>
-                    {create.isPending ? "Creating…" : "New form"}
+                    <Plus className="mr-2 h-4 w-4" /> {create.isPending ? "Creating…" : "New form"}
                 </Button>
             </div>
             {forms.isPending && <p role="status">Loading forms…</p>}
@@ -61,7 +59,7 @@ function AdminFormsList() {
                     {forms.data.map(form => (
                         <li key={form.id}>
                             <Link className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50" to={adminFormsPath + "/" + form.id}>
-                                <span className="font-medium">{form.title}</span>
+                                <span className="min-w-0 flex items-center gap-3"><FileText className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate font-medium">{form.title}</span></span>
                                 <span className="text-sm text-muted-foreground">
                                     {form.publishedVersion > 0 ? "Published v" + form.publishedVersion : "Draft"}
                                     {form.publishedVersion > 0 && form.hasDraft && " · Draft in progress"}
@@ -100,13 +98,16 @@ function FormEditor({ initialForm }: { initialForm: AdminForm }) {
     const [conflict, setConflict] = useState(false);
     const [latest, setLatest] = useState<AdminForm | null>(null);
     const [notice, setNotice] = useState("");
+    const [selectedID, setSelectedID] = useState<string | null>(null);
+    const [previewing, setPreviewing] = useState(false);
     const queryClient = useQueryClient();
     const dirty = JSON.stringify(draft) !== JSON.stringify(saved.draft);
     const path = adminFormsPath + "/" + saved.id;
 
-    function useSnapshot(form: AdminForm) {
+    function applySnapshot(form: AdminForm) {
         setSaved(form);
         setDraft(form.draft);
+        setSelectedID(id => form.draft?.fields.some(field => field.id === id) ? id : null);
         setConflict(false);
         setLatest(null);
         queryClient.setQueryData(["adminForm", String(form.id)], form);
@@ -123,7 +124,8 @@ function FormEditor({ initialForm }: { initialForm: AdminForm }) {
             return response.data;
         },
         onSuccess: (form, action) => {
-            useSnapshot(form);
+            applySnapshot(form);
+            if (action === "edit") setPreviewing(false);
             setNotice(action === "publish" ? "Published version " + form.publishedVersion + "." : "Draft saved.");
             queryClient.invalidateQueries({ queryKey: ["adminForms"] });
             if (action === "publish") queryClient.invalidateQueries({ queryKey: ["publishedForms"] });
@@ -159,49 +161,84 @@ function FormEditor({ initialForm }: { initialForm: AdminForm }) {
         });
     }
 
-    function addField(label: string) {
-        updateFields(fields => [...fields, { id: crypto.randomUUID(), label, type: "text", required: false }]);
+    function addField(label: string, type: FieldType) {
+        const id = crypto.randomUUID();
+        updateFields(fields => [...fields, { id, label, type, required: false }]);
+        setSelectedID(id);
     }
 
     const current = draft ?? saved.published;
+    const latestDefinition = latest?.draft ?? latest?.published;
+    const showingPreview = previewing || !draft;
     return (
-        <section className="mx-auto w-full max-w-6xl space-y-5 px-6 py-10">
-            <Link to={adminFormsPath} className="text-sm text-muted-foreground hover:underline">All forms</Link>
-            <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-semibold">{current?.title || "Untitled form"}</h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        {saved.publishedVersion > 0 ? "Published version " + saved.publishedVersion : "Unpublished form"}
-                        {draft && " · Draft revision " + saved.revision}
-                    </p>
+        <section className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:py-10">
+            <Link to={adminFormsPath} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+                <ChevronLeft className="h-4 w-4" /> All forms
+            </Link>
+            <div className="flex flex-wrap items-start justify-between gap-4 border-b pb-5">
+                <div className="min-w-0">
+                    <h1 className="break-words text-2xl font-semibold tracking-tight">{current?.title || "Untitled form"}</h1>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        {draft && <span className="rounded-md bg-muted px-2 py-1 font-medium text-foreground">Draft</span>}
+                        {saved.publishedVersion > 0 && (
+                            <span className="inline-flex items-center gap-1 rounded-md border px-2 py-1 font-medium">
+                                <CircleCheck className="h-3 w-3" /> Live v{saved.publishedVersion}
+                            </span>
+                        )}
+                        {draft && <span>{dirty ? "Unsaved changes" : "Revision " + saved.revision}</span>}
+                    </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     {draft ? (
                         <>
-                            <Button variant="outline" disabled={!dirty || change.isPending || conflict} onClick={() => change.mutate("save")}>Save draft</Button>
-                            <Button disabled={dirty || !draft.fields.length || change.isPending || conflict} onClick={() => change.mutate("publish")}>Publish</Button>
+                            <Button size="sm" variant="ghost" onClick={() => setPreviewing(!previewing)} aria-pressed={previewing}>
+                                {previewing ? <Pencil className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+                                {previewing ? "Back to editor" : "Preview"}
+                            </Button>
+                            <Button size="sm" variant="outline" disabled={!dirty || change.isPending || conflict}
+                                onClick={() => change.mutate("save")}>
+                                {change.isPending && change.variables === "save" ? "Saving…" : "Save draft"}
+                            </Button>
+                            <Button size="sm" disabled={dirty || !draft.fields.length || change.isPending || conflict}
+                                onClick={() => change.mutate("publish")}>
+                                {change.isPending && change.variables === "publish" ? "Publishing…" : "Publish"}
+                            </Button>
                         </>
                     ) : (
-                        <Button disabled={change.isPending || conflict} onClick={() => change.mutate("edit")}>Edit published form</Button>
+                        <Button size="sm" disabled={change.isPending || conflict} onClick={() => change.mutate("edit")}>
+                            <Pencil className="mr-2 h-4 w-4" /> Edit published form
+                        </Button>
                     )}
                 </div>
             </div>
-            {dirty && !conflict && <p className="text-sm text-muted-foreground">Save your changes before publishing.</p>}
-            {notice && <p role="status" className="text-sm">{notice}</p>}
-            {change.isError && !conflict && <Alert variant="destructive"><AlertDescription>{requestError(change.error, "Could not update the form.")}</AlertDescription></Alert>}
+            {notice && (
+                <p role="status" className="flex items-center gap-2 text-sm">
+                    <CircleCheck className="h-4 w-4 text-muted-foreground" /> {notice}
+                </p>
+            )}
+            {change.isError && !conflict && (
+                <Alert variant="destructive"><AlertDescription>{requestError(change.error, "Could not update the form.")}</AlertDescription></Alert>
+            )}
             {conflict && (
                 <Alert variant="destructive">
+                    <AlertTitle>Another admin changed this form</AlertTitle>
                     <AlertDescription className="space-y-3">
-                        <p>Another admin changed this form. Your edits are still in the editor.</p>
-                        <Button size="sm" variant="outline" disabled={loadLatest.isPending} onClick={() => loadLatest.mutate()}>View latest version</Button>
+                        <p>Your unsaved edits are still in the editor. Review the latest draft before replacing them.</p>
+                        <Button size="sm" variant="outline" disabled={loadLatest.isPending} onClick={() => loadLatest.mutate()}>
+                            {loadLatest.isPending ? "Loading…" : "View latest version"}
+                        </Button>
                         {loadLatest.isError && <p>Could not load the latest version.</p>}
                         {latest && (
                             <div className="space-y-3">
-                                <details>
-                                    <summary>Latest content, revision {latest.revision}</summary>
-                                    {(latest.draft ?? latest.published) && <FormPreview key={latest.revision} definition={(latest.draft ?? latest.published)!} />}
+                                <details className="rounded-lg border p-3">
+                                    <summary className="cursor-pointer">Latest content, revision {latest.revision}</summary>
+                                    {latestDefinition && <div className="mt-4"><FormPreview key={latest.revision} definition={latestDefinition} /></div>}
                                 </details>
-                                <Button size="sm" variant="outline" onClick={() => { useSnapshot(latest); change.reset(); }}>
+                                <Button size="sm" variant="outline" onClick={() => {
+                                    applySnapshot(latest);
+                                    setNotice("");
+                                    change.reset();
+                                }}>
                                     Replace editor with latest version
                                 </Button>
                             </div>
@@ -209,60 +246,24 @@ function FormEditor({ initialForm }: { initialForm: AdminForm }) {
                     </AlertDescription>
                 </Alert>
             )}
-            <div className={draft ? "grid items-start gap-6 lg:grid-cols-2" : "max-w-2xl"}>
-                {draft && (
-                    <fieldset disabled={change.isPending} className="space-y-5 rounded-lg border p-5">
-                        <legend className="sr-only">Draft settings and fields</legend>
-                        <div className="space-y-2">
-                            <Label htmlFor="form-title">Title</Label>
-                            <Input id="form-title" maxLength={120} value={draft.title} onChange={event => { setDraft({ ...draft, title: event.target.value }); setNotice(""); }} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="form-description">Description</Label>
-                            <textarea id="form-description" className="min-h-20 w-full rounded-md border border-input bg-background p-3 text-sm"
-                                maxLength={2000} value={draft.description} onChange={event => { setDraft({ ...draft, description: event.target.value }); setNotice(""); }} />
-                        </div>
-                        <h2 className="font-semibold">Fields</h2>
-                        <div className="flex flex-wrap gap-2">
-                            <Button size="sm" variant="outline" disabled={draft.fields.length >= 100} onClick={() => addField("New field")}>Add field</Button>
-                            {presets.map(preset => (
-                                <Button key={preset} size="sm" variant="ghost" disabled={draft.fields.length >= 100} onClick={() => addField(preset)}>
-                                    Add {preset.toLowerCase()}
-                                </Button>
-                            ))}
-                        </div>
-                        {draft.fields.map((field, index) => (
-                            <div className="space-y-3 rounded-md border p-3" key={field.id}>
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <Label htmlFor={"label-" + field.id}>Field label</Label>
-                                    <Input id={"label-" + field.id} maxLength={120} value={field.label}
-                                        onChange={event => updateField(field.id, { label: event.target.value })} />
-                                </div>
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <Label htmlFor={"type-" + field.id}>Type</Label>
-                                    <select id={"type-" + field.id} className={selectClass} value={field.type}
-                                        onChange={event => updateField(field.id, { type: event.target.value as FieldType })}>
-                                        {fieldTypes.map(type => <option key={type.value} value={type.value}>{type.label}</option>)}
-                                    </select>
-                                    <label className="flex items-center gap-2 text-sm">
-                                        <input type="checkbox" checked={field.required} onChange={event => updateField(field.id, { required: event.target.checked })} />
-                                        Required
-                                    </label>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    <Button size="sm" variant="ghost" disabled={index === 0} onClick={() => moveField(index, -1)}>Move up</Button>
-                                    <Button size="sm" variant="ghost" disabled={index === draft.fields.length - 1} onClick={() => moveField(index, 1)}>Move down</Button>
-                                    <Button size="sm" variant="ghost" onClick={() => updateFields(fields => fields.filter(item => item.id !== field.id))}>Remove</Button>
-                                </div>
-                            </div>
-                        ))}
-                    </fieldset>
-                )}
-                {current && <div className="rounded-lg border p-5">
-                    <p className="mb-4 text-sm text-muted-foreground">{draft ? "Draft preview" : "Published form"}</p>
-                    <FormPreview key={saved.revision + JSON.stringify(current)} definition={current} allowValidation={!!draft} />
-                </div>}
-            </div>
+            {showingPreview && current && (
+                <div className="mx-auto w-full max-w-2xl space-y-4 rounded-xl border bg-background p-5 shadow-sm sm:p-8">
+                    <div className="flex items-center gap-2 border-b pb-3 text-xs font-medium text-muted-foreground">
+                        <Eye className="h-4 w-4" /> {draft ? "Preview · Answers aren’t saved" : "Published form"}
+                    </div>
+                    <FormPreview key={JSON.stringify(current)} definition={current} allowValidation={!!draft} />
+                </div>
+            )}
+            {!showingPreview && draft && (
+                <BuilderWorkspace draft={draft} selectedID={selectedID} disabled={change.isPending}
+                    onSelect={setSelectedID}
+                    onDetails={details => { setDraft({ ...draft, ...details }); setNotice(""); }}
+                    onAdd={addField} onUpdate={updateField} onMove={moveField}
+                    onRemove={id => {
+                        updateFields(fields => fields.filter(field => field.id !== id));
+                        setSelectedID(null);
+                    }} />
+            )}
         </section>
     );
 }
