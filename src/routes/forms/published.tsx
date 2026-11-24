@@ -109,6 +109,7 @@ function PublishedFormContent({ id }: { id: string }) {
     }
 
     const submission = receipt.data;
+    const approvedAction = submission?.status === "approved" ? submission.definition.approvalAction : undefined;
     const version = submission?.version ?? form.data.version;
     const canSubmit = isUser && (!submission || submission.status === "changes_requested");
     const revision = submission?.revision;
@@ -141,6 +142,14 @@ function PublishedFormContent({ id }: { id: string }) {
                         {" "}Form version {submission.version}.
                     </AlertDescription>
                 </Alert>
+            )}
+            {approvedAction?.kind === "follow_up_form" && (
+                <Button variant="outline" className="w-fit" asChild>
+                    <Link to={publishedFormsPath + "/" + approvedAction.formId}>Open follow-up form</Link>
+                </Button>
+            )}
+            {approvedAction?.kind === "assign_role" && (
+                <p className="text-sm">Application role assigned: <span className="font-medium">{approvedAction.role}</span></p>
             )}
             {versionChanged && !submission && (
                 <Button type="button" variant="outline" className="w-fit" disabled={form.isFetching} onClick={async () => {

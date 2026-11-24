@@ -294,7 +294,7 @@ function FormEditor({ initialForm }: { initialForm: AdminForm }) {
             )}
             {!showingPreview && draft && (
                 <div className="workspace-view-enter">
-                    <BuilderWorkspace draft={draft} selectedID={selectedID} disabled={change.isPending}
+                    <BuilderWorkspace draft={draft} formID={saved.id} selectedID={selectedID} disabled={change.isPending}
                         onSelect={setSelectedID}
                         onDetails={details => { setDraft({ ...draft, ...details }); setNotice(""); }}
                         onAdd={addField} onUpdate={updateField} onMove={moveField}

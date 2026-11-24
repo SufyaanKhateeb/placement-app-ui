@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { fieldTypes } from "./api";
 import type { FieldType, FormDefinition, FormField } from "./api";
+import { ApprovalSettingsEditor } from "./approval-settings";
 import { RulesEditor } from "./validation-rules";
 
 const presets = ["Name", "Email", "Group", "Subgroup"];
@@ -27,17 +28,18 @@ const fieldIcons = {
 
 type Props = {
     draft: FormDefinition;
+    formID: number;
     selectedID: string | null;
     disabled: boolean;
     onSelect: (id: string | null) => void;
-    onDetails: (details: Pick<FormDefinition, "title" | "description">) => void;
+    onDetails: (details: Partial<Pick<FormDefinition, "title" | "description" | "approvalAction" | "requiresApprovalGrant">>) => void;
     onAdd: (label: string, type: FieldType) => void;
     onUpdate: (id: string, patch: Partial<FormField>) => void;
     onMove: (index: number, direction: number) => void;
     onRemove: (id: string) => void;
 };
 
-export function BuilderWorkspace({ draft, selectedID, disabled, onSelect, onDetails, onAdd, onUpdate, onMove, onRemove }: Props) {
+export function BuilderWorkspace({ draft, formID, selectedID, disabled, onSelect, onDetails, onAdd, onUpdate, onMove, onRemove }: Props) {
     const index = draft.fields.findIndex(field => field.id === selectedID);
     const selected = draft.fields[index];
 
@@ -178,15 +180,17 @@ export function BuilderWorkspace({ draft, selectedID, disabled, onSelect, onDeta
                             <Field data-disabled={disabled}>
                                 <FieldLabel htmlFor="form-title">Title</FieldLabel>
                                 <Input id="form-title" disabled={disabled} maxLength={120} value={draft.title}
-                                    onChange={event => onDetails({ title: event.target.value, description: draft.description })} />
+                                    onChange={event => onDetails({ title: event.target.value })} />
                             </Field>
                             <Field data-disabled={disabled}>
                                 <FieldLabel htmlFor="form-description">Description</FieldLabel>
                                 <Textarea id="form-description" rows={4} disabled={disabled}
                                     maxLength={2000} value={draft.description}
-                                    onChange={event => onDetails({ title: draft.title, description: event.target.value })} />
+                                    onChange={event => onDetails({ description: event.target.value })} />
                             </Field>
                         </FieldGroup>
+                        <Separator />
+                        <ApprovalSettingsEditor formID={formID} settings={draft} disabled={disabled} onChange={onDetails} />
                     </FieldSet>
                 )}
             </aside>

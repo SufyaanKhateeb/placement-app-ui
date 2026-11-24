@@ -28,10 +28,14 @@ export type FormField = {
     rules?: FieldRules;
 };
 
+export type ApprovalAction = { kind: "follow_up_form"; formId: number } | { kind: "assign_role"; role: string };
+
 export type FormDefinition = {
     title: string;
     description: string;
     fields: FormField[];
+    approvalAction?: ApprovalAction;
+    requiresApprovalGrant?: boolean;
 };
 
 export type SubmissionStatus = "not_submitted" | "submitted" | "changes_requested" | "approved";
@@ -42,6 +46,7 @@ export type FormSummary = {
     hasDraft: boolean;
     publishedVersion: number;
     submissionStatus?: SubmissionStatus;
+    requiresApprovalGrant?: boolean;
 };
 
 export type AdminForm = {

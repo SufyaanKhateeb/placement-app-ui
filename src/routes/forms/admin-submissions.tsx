@@ -107,6 +107,7 @@ function ReviewForm({ review, onReload }: { review: Review; onReload: () => void
     const hasMention = comment.some(part => "fieldId" in part);
     const hasInstructions = comment.some(part => "text" in part && part.text.trim());
     const reviewing = review.status === "submitted";
+    const action = review.definition.approvalAction;
     const decision = useMutation({
         mutationFn: async (action: Decision) => (await axiosInstance.put<Review>(submissionsPath + "/" + review.id + "/review", {
             revision: review.revision,
@@ -129,6 +130,13 @@ function ReviewForm({ review, onReload }: { review: Review; onReload: () => void
                 </div>
                 <SubmissionStatusBadge status={review.status} />
             </div>
+            {reviewing && (
+                <p className="text-sm text-muted-foreground">
+                    Approval records verification.
+                    {action?.kind === "follow_up_form" && " It also unlocks the configured follow-up form."}
+                    {action?.kind === "assign_role" && " It also assigns the application role " + action.role + "."}
+                </p>
+            )}
             <FieldGroup>
                 {review.definition.fields.map(field => (
                     <Field key={field.id} id={"review-field-" + field.id} tabIndex={-1} className="rounded-lg border bg-card p-4">
