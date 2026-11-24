@@ -34,11 +34,14 @@ export type FormDefinition = {
     fields: FormField[];
 };
 
+export type SubmissionStatus = "not_submitted" | "submitted" | "changes_requested" | "approved";
+
 export type FormSummary = {
     id: number;
     title: string;
     hasDraft: boolean;
     publishedVersion: number;
+    submissionStatus?: SubmissionStatus;
 };
 
 export type AdminForm = {
@@ -82,7 +85,7 @@ export type FormSubmission = {
     id: number;
     version: number;
     revision: number;
-    status: "submitted" | "changes_requested" | "approved";
+    status: Exclude<SubmissionStatus, "not_submitted">;
     submittedAt: string;
     definition: FormDefinition;
     values: FormAnswers;

@@ -12,10 +12,14 @@ import { axiosInstance } from "@/config/axios";
 import { publishedFormsPath, requestError } from "./api";
 import type { FormAnswerErrors, FormAnswers, FormSubmission, FormSummary, PublishedForm } from "./api";
 import { AnswerForm } from "./form-preview";
+import { SubmissionStatusBadge } from "./submission-status";
+
+const publishedFormsListKey = ["publishedForms", "list"];
 
 export function PublishedFormsPage() {
+    const { data: user } = useGetUserQuery({ queryKey: ["getUser"] });
     const forms = useQuery({
-        queryKey: ["publishedForms"],
+        queryKey: [...publishedFormsListKey, user?.role, user?.id],
         queryFn: async () => (await axiosInstance.get<FormSummary[]>(publishedFormsPath)).data,
         retry: false,
     });
@@ -51,7 +55,8 @@ export function PublishedFormsPage() {
                                     <span className="truncate font-medium">{form.title}</span>
                                 </span>
                                 <span className="flex items-center gap-2">
-                                    <Badge variant="outline">Version {form.publishedVersion}</Badge>
+                                    {form.submissionStatus && <SubmissionStatusBadge status={form.submissionStatus} />}
+                                    <Badge variant="outline" className={form.submissionStatus ? "hidden sm:inline-flex" : undefined}>Version {form.publishedVersion}</Badge>
                                     <ArrowUpRight className="size-4 text-muted-foreground" aria-hidden="true" />
                                 </span>
                             </Link>
@@ -115,10 +120,12 @@ function PublishedFormContent({ id }: { id: string }) {
                 ? await axiosInstance.post<FormSubmission>(submissionPath, body)
                 : await axiosInstance.put<FormSubmission>(submissionPath, body);
             queryClient.setQueryData(submissionKey, response.data);
+            void queryClient.invalidateQueries({ queryKey: publishedFormsListKey });
         } catch (error) {
             if (isAxiosError<FormAnswerErrors>(error) && error.response?.status === 409) {
                 if (error.response.data.code === "version_changed") setVersionChanged(true);
                 await receipt.refetch();
+                void queryClient.invalidateQueries({ queryKey: publishedFormsListKey });
             }
             throw error;
         }

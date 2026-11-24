@@ -4,7 +4,6 @@ import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Field, FieldGroup } from "@/components/ui/field";
@@ -15,13 +14,10 @@ import { axiosInstance } from "@/config/axios";
 import { requestError } from "./api";
 import type { FormAnswer, FormSubmission } from "./api";
 import { AdminFormsGuard } from "./admin-forms";
+import { SubmissionStatusBadge } from "./submission-status";
 
 const submissionsPath = "/admin/submissions";
-const statusLabel = {
-    submitted: "Awaiting review",
-    changes_requested: "Changes requested",
-    approved: "Approved",
-} as const;
+
 
 type Submitter = { userName: string; userEmail: string };
 type Review = FormSubmission & Submitter;
@@ -60,7 +56,7 @@ function SubmissionQueue() {
                                 <span className="truncate font-medium">{item.formTitle}</span>
                                 <span className="truncate text-xs text-muted-foreground">{item.userName || item.userEmail} · v{item.version}</span>
                             </span>
-                            <Badge variant="outline">{statusLabel[item.status]}</Badge>
+                            <SubmissionStatusBadge status={item.status} />
                         </Link>
                     </li>
                 ))}
@@ -131,7 +127,7 @@ function ReviewForm({ review, onReload }: { review: Review; onReload: () => void
                     <h1>{review.definition.title}</h1>
                     <p>{review.userName} · {review.userEmail} · Form version {review.version}</p>
                 </div>
-                <Badge variant="outline">{statusLabel[review.status]}</Badge>
+                <SubmissionStatusBadge status={review.status} />
             </div>
             <FieldGroup>
                 {review.definition.fields.map(field => (
