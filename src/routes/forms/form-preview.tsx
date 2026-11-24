@@ -1,3 +1,4 @@
+import { isAxiosError } from "axios";
 import { useMutation } from "@tanstack/react-query";
 import { useId, useState } from "react";
 import type { FormEvent } from "react";
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Spinner } from "@/components/ui/spinner";
 import { axiosInstance } from "@/config/axios";
 import { adminFormsPath, requestError } from "./api";
-import type { FormDefinition, FormField } from "./api";
+import type { FormAnswer, FormAnswers, FormAnswerErrors, FormDefinition, FormField } from "./api";
 
 function previewValue(field: FormField, value: string) {
     if (value === "") return null;
@@ -41,23 +42,62 @@ function validationHint(field: FormField) {
     return hints.join(" · ");
 }
 
+type AnswerAction = {
+    run: (values: FormAnswers) => Promise<{ valid?: boolean; errors?: Record<string, string> } | void>;
+    label: string;
+    pendingLabel: string;
+    successMessage?: string;
+    errorMessage: string;
+};
+
+function answerText(field: FormField, answer: FormAnswer) {
+    if (answer === null) return "";
+    if (field.type !== "timestamptz") return String(answer);
+    const date = new Date(String(answer));
+    if (Number.isNaN(date.valueOf())) return "";
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
 export function FormPreview({ definition, allowValidation = false }: {
     definition: FormDefinition;
     allowValidation?: boolean;
 }) {
-    const previewID = useId();
-    const [values, setValues] = useState<Record<string, string>>({});
-    const validation = useMutation({
-        mutationFn: async () => {
-            const body = {
-                draft: definition,
-                values: Object.fromEntries(definition.fields.map(field => [field.id, previewValue(field, values[field.id] ?? "")])),
-            };
-            const response = await axiosInstance.post<{ valid: boolean; errors: Record<string, string> }>(adminFormsPath + "/preview", body);
+    const action: AnswerAction | undefined = allowValidation ? {
+        run: async values => {
+            const response = await axiosInstance.post<{ valid: boolean; errors: Record<string, string> }>(
+                adminFormsPath + "/preview", { draft: definition, values },
+            );
             return response.data;
         },
+        label: "Check sample answers",
+        pendingLabel: "Checking…",
+        successMessage: "Sample answers are valid.",
+        errorMessage: "Could not check sample answers.",
+    } : undefined;
+
+    return <AnswerForm definition={definition} action={action} />;
+}
+
+export function AnswerForm({ definition, action, initialValues = {} }: {
+    definition: FormDefinition;
+    action?: AnswerAction;
+    initialValues?: FormAnswers;
+}) {
+    const previewID = useId();
+    const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(
+        definition.fields.map(field => [field.id, answerText(field, initialValues[field.id] ?? null)]),
+    ));
+    const validation = useMutation({
+        mutationFn: async () => {
+            if (!action) return;
+            return action.run(Object.fromEntries(
+                definition.fields.map(field => [field.id, previewValue(field, values[field.id] ?? "")]),
+            ));
+        },
     });
-    const disabled = !allowValidation || validation.isPending;
+    const serverError = isAxiosError<FormAnswerErrors>(validation.error) ? validation.error.response?.data : undefined;
+    const errors = validation.data?.errors ?? serverError?.errors;
+    const disabled = !action || validation.isPending;
 
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -81,7 +121,7 @@ export function FormPreview({ definition, allowValidation = false }: {
                     {definition.fields.map(field => {
                         const id = previewID + "-" + field.id;
                         const value = values[field.id] ?? "";
-                        const error = validation.data?.errors[field.id];
+                        const error = errors?.[field.id];
                         const hint = validationHint(field);
                         const describedBy = [hint && id + "-hint", error && id + "-error"].filter(Boolean).join(" ") || undefined;
                         const inputType = { text: "text", boolean: "text", integer: "number", numeric: "text", date: "date", timestamptz: "datetime-local" }[field.type];
@@ -116,15 +156,15 @@ export function FormPreview({ definition, allowValidation = false }: {
                     })}
                 </FieldGroup>
             )}
-            {allowValidation && definition.fields.length > 0 && (
+            {action && definition.fields.length > 0 && (
                 <Button type="submit" variant="outline" className="w-fit gap-2" disabled={disabled}>
                     {validation.isPending && <Spinner data-icon="inline-start" aria-hidden="true" />}
-                    {validation.isPending ? "Checking…" : "Check sample answers"}
+                    {validation.isPending ? action.pendingLabel : action.label}
                 </Button>
             )}
-            {validation.data?.valid && <p role="status" className="text-sm">Sample answers are valid.</p>}
+            {validation.data?.valid && action?.successMessage && <p role="status" className="text-sm">{action.successMessage}</p>}
             {validation.isError && (
-                <Alert variant="destructive"><AlertDescription>{requestError(validation.error, "Could not check sample answers.")}</AlertDescription></Alert>
+                <Alert variant="destructive"><AlertDescription>{requestError(validation.error, action?.errorMessage ?? "Could not validate answers.")}</AlertDescription></Alert>
             )}
         </form>
     );

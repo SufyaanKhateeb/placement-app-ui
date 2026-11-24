@@ -1,4 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
+import { useState } from "react";
+import { useGetUserQuery } from "@/auth/queryHooks";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowUpRight, FileText } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -7,8 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { axiosInstance } from "@/config/axios";
 import { publishedFormsPath, requestError } from "./api";
-import type { FormSummary, PublishedForm } from "./api";
-import { FormPreview } from "./form-preview";
+import type { FormAnswerErrors, FormAnswers, FormSubmission, FormSummary, PublishedForm } from "./api";
+import { AnswerForm } from "./form-preview";
 
 export function PublishedFormsPage() {
     const forms = useQuery({
@@ -61,26 +64,96 @@ export function PublishedFormsPage() {
 }
 
 export function PublishedFormPage() {
-    const { id } = useParams();
-    const form = useQuery({
-        queryKey: ["publishedForms", id],
-        queryFn: async () => (await axiosInstance.get<PublishedForm>(publishedFormsPath + "/" + id)).data,
-        retry: false,
-    });
+    const { id = "" } = useParams();
 
     return (
         <section className="workspace-page max-w-3xl">
             <Button variant="ghost" size="sm" className="w-fit gap-2" asChild>
                 <Link to="/forms"><ArrowLeft data-icon="inline-start" aria-hidden="true" /> All forms</Link>
             </Button>
-            {form.isPending && <p role="status" className="text-sm text-muted-foreground">Loading form…</p>}
-            {form.isError && <Alert variant="destructive"><AlertDescription>{requestError(form.error, "Could not load form.")}</AlertDescription></Alert>}
-            {form.data && (
-                <div className="flex flex-col gap-5 rounded-lg border bg-card p-5 sm:p-7">
-                    <FormPreview definition={form.data.definition} />
-                    <p className="text-sm text-muted-foreground">Submissions are not available yet.</p>
-                </div>
-            )}
+            <PublishedFormContent key={id} id={id} />
         </section>
+    );
+}
+
+function PublishedFormContent({ id }: { id: string }) {
+    const { data: user } = useGetUserQuery({ queryKey: ["getUser"] });
+    const queryClient = useQueryClient();
+    const path = publishedFormsPath + "/" + id;
+    const submissionPath = path + "/submission";
+    const isUser = user?.role === "user";
+    const submissionKey = ["publishedForms", id, "submission", user?.id];
+    const form = useQuery({
+        queryKey: ["publishedForms", id],
+        queryFn: async () => (await axiosInstance.get<PublishedForm>(path)).data,
+        retry: false,
+        refetchOnWindowFocus: false,
+    });
+    const receipt = useQuery({
+        queryKey: submissionKey,
+        queryFn: async () => (await axiosInstance.get<FormSubmission | null>(submissionPath)).data,
+        enabled: isUser,
+        retry: false,
+        refetchOnWindowFocus: false,
+    });
+    const [versionChanged, setVersionChanged] = useState(false);
+    if (form.isPending || (isUser && receipt.isPending)) return <p role="status" className="text-sm text-muted-foreground">Loading form…</p>;
+    if (form.isError || (isUser && receipt.isError)) {
+        const error = form.error ?? receipt.error;
+        return <Alert variant="destructive"><AlertDescription>{requestError(error, "Could not load form.")}</AlertDescription></Alert>;
+    }
+
+    const submission = receipt.data;
+    const version = submission?.version ?? form.data.version;
+    const canSubmit = isUser && (!submission || submission.status === "changes_requested");
+    const revision = submission?.revision;
+
+    async function sendAnswers(values: FormAnswers) {
+        try {
+            const body = { version, values, ...(revision === undefined ? {} : { revision }) };
+            const response = revision === undefined
+                ? await axiosInstance.post<FormSubmission>(submissionPath, body)
+                : await axiosInstance.put<FormSubmission>(submissionPath, body);
+            queryClient.setQueryData(submissionKey, response.data);
+        } catch (error) {
+            if (isAxiosError<FormAnswerErrors>(error) && error.response?.status === 409) {
+                if (error.response.data.code === "version_changed") setVersionChanged(true);
+                await receipt.refetch();
+            }
+            throw error;
+        }
+    }
+
+    return (
+        <div className="flex flex-col gap-5 rounded-lg border bg-card p-5 sm:p-7">
+            {submission && (
+                <Alert>
+                    <AlertDescription role="status">
+                        {submission.status === "changes_requested" ? "Changes requested. Update your answers and resubmit." :
+                            submission.status === "approved" ? "Approved." : "Submitted for approval."}
+                        {" "}Form version {submission.version}.
+                    </AlertDescription>
+                </Alert>
+            )}
+            {versionChanged && !submission && (
+                <Button type="button" variant="outline" className="w-fit" disabled={form.isFetching} onClick={async () => {
+                    const updated = await form.refetch();
+                    if (updated.isSuccess) setVersionChanged(false);
+                }}>
+                    Open latest version
+                </Button>
+            )}
+            <AnswerForm
+                key={version + ":" + (revision ?? "new") + ":" + (submission?.status ?? "")}
+                definition={submission?.definition ?? form.data.definition}
+                initialValues={submission?.values}
+                action={canSubmit ? {
+                    run: sendAnswers,
+                    label: submission ? "Resubmit for approval" : "Submit for approval",
+                    pendingLabel: "Submitting…",
+                    errorMessage: "Could not submit this form. Please try again.",
+                } : undefined}
+            />
+        </div>
     );
 }

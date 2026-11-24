@@ -73,3 +73,17 @@ export async function getAdminForm(id: string) {
     const response = await axiosInstance.get<AdminForm>(adminFormsPath + "/" + id);
     return response.data;
 }
+export type FormAnswer = string | number | boolean | null;
+export type FormAnswers = Record<string, FormAnswer>;
+
+export type FormSubmission = {
+    id: number;
+    version: number;
+    revision: number;
+    status: "submitted" | "changes_requested" | "approved";
+    submittedAt: string;
+    definition: FormDefinition;
+    values: FormAnswers;
+};
+
+export type FormAnswerErrors = { error?: string; errors?: Record<string, string>; code?: string };
