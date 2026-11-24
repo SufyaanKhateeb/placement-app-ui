@@ -147,6 +147,8 @@ function PublishedFormContent({ id }: { id: string }) {
                 key={version + ":" + (revision ?? "new") + ":" + (submission?.status ?? "")}
                 definition={submission?.definition ?? form.data.definition}
                 initialValues={submission?.values}
+                feedback={submission?.status === "changes_requested" ? submission.changes : undefined}
+                reviewComment={submission?.status === "changes_requested" ? submission.comment : undefined}
                 action={canSubmit ? {
                     run: sendAnswers,
                     label: submission ? "Resubmit for approval" : "Submit for approval",

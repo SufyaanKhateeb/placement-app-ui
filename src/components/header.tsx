@@ -1,4 +1,4 @@
-import { ClipboardList, FileText, House, Shield, type LucideIcon } from "lucide-react";
+import { ClipboardList, FileText, House, Inbox, Shield, type LucideIcon } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuthStore } from "@/auth/auth-store";
 import { useGetUserQuery } from "@/auth/queryHooks";
@@ -18,6 +18,7 @@ export default function Header() {
     if (user?.role === "admin") {
         workspaceLinks.push(
             { to: "/admin/forms", label: "Manage forms", icon: ClipboardList },
+            { to: "/admin/submissions", label: "Submissions", icon: Inbox },
             { to: "/admin", label: "Admin account", end: true, icon: Shield },
         );
     }

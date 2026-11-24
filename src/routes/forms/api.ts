@@ -76,6 +76,8 @@ export async function getAdminForm(id: string) {
 export type FormAnswer = string | number | boolean | null;
 export type FormAnswers = Record<string, FormAnswer>;
 
+export type ReviewCommentPart = { text: string } | { fieldId: string };
+
 export type FormSubmission = {
     id: number;
     version: number;
@@ -84,6 +86,8 @@ export type FormSubmission = {
     submittedAt: string;
     definition: FormDefinition;
     values: FormAnswers;
+    changes?: Record<string, string>;
+    comment?: ReviewCommentPart[];
 };
 
 export type FormAnswerErrors = { error?: string; errors?: Record<string, string>; code?: string };

@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Spinner } from "@/components/ui/spinner";
 import { axiosInstance } from "@/config/axios";
 import { adminFormsPath, requestError } from "./api";
-import type { FormAnswer, FormAnswers, FormAnswerErrors, FormDefinition, FormField } from "./api";
+import type { FormAnswer, FormAnswers, FormAnswerErrors, FormDefinition, FormField, ReviewCommentPart } from "./api";
+import { ReviewFeedback } from "./review-feedback";
 
 function previewValue(field: FormField, value: string) {
     if (value === "") return null;
@@ -78,12 +79,16 @@ export function FormPreview({ definition, allowValidation = false }: {
     return <AnswerForm definition={definition} action={action} />;
 }
 
-export function AnswerForm({ definition, action, initialValues = {} }: {
+export function AnswerForm({ definition, action, initialValues = {}, feedback, reviewComment }: {
     definition: FormDefinition;
     action?: AnswerAction;
     initialValues?: FormAnswers;
+    feedback?: Record<string, string>;
+    reviewComment?: ReviewCommentPart[];
 }) {
     const previewID = useId();
+    const highlighted = new Set(Object.keys(feedback ?? {}));
+    reviewComment?.forEach(part => { if ("fieldId" in part) highlighted.add(part.fieldId); });
     const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(
         definition.fields.map(field => [field.id, answerText(field, initialValues[field.id] ?? null)]),
     ));
@@ -115,6 +120,8 @@ export function AnswerForm({ definition, action, initialValues = {} }: {
                 <h2 className="text-xl font-semibold">{definition.title || "Untitled form"}</h2>
                 {definition.description && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{definition.description}</p>}
             </div>
+            <ReviewFeedback comment={reviewComment} legacy={feedback} fields={definition.fields}
+                fieldTarget={id => previewID + "-" + id} />
             {definition.fields.length === 0 && <Empty><EmptyHeader><EmptyTitle>No fields yet</EmptyTitle></EmptyHeader></Empty>}
             {definition.fields.length > 0 && (
                 <FieldGroup>
@@ -123,10 +130,12 @@ export function AnswerForm({ definition, action, initialValues = {} }: {
                         const value = values[field.id] ?? "";
                         const error = errors?.[field.id];
                         const hint = validationHint(field);
-                        const describedBy = [hint && id + "-hint", error && id + "-error"].filter(Boolean).join(" ") || undefined;
+                        const needsChanges = highlighted.has(field.id);
+                        const describedBy = [hint && id + "-hint", needsChanges && id + "-feedback", error && id + "-error"].filter(Boolean).join(" ") || undefined;
                         const inputType = { text: "text", boolean: "text", integer: "number", numeric: "text", date: "date", timestamptz: "datetime-local" }[field.type];
                         return (
-                            <Field key={field.id} data-invalid={!!error} data-disabled={disabled}>
+                            <Field key={field.id} data-invalid={!!error} data-disabled={disabled}
+                                className={needsChanges ? "rounded-lg border border-ring bg-accent/40 p-3" : undefined}>
                                 <FieldLabel htmlFor={id}>{field.label || "Untitled field"}{field.required && " (required)"}</FieldLabel>
                                 {field.type === "boolean" ? (
                                     <Select value={value || "unanswered"} disabled={disabled} required={field.required}
@@ -150,6 +159,7 @@ export function AnswerForm({ definition, action, initialValues = {} }: {
                                         onChange={event => setField(field.id, event.target.value)} />
                                 )}
                                 {hint && <FieldDescription id={id + "-hint"}>{hint}</FieldDescription>}
+                                {needsChanges && <FieldDescription id={id + "-feedback"}>Changes requested. See review feedback above.</FieldDescription>}
                                 {error && <FieldError id={id + "-error"}>{error}</FieldError>}
                             </Field>
                         );

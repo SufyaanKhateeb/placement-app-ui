@@ -15,7 +15,7 @@ import { FormPreview } from "./form-preview";
 import { BuilderWorkspace } from "./builder-workspace";
 
 
-function AdminFormsGuard({ children }: PropsWithChildren) {
+export function AdminFormsGuard({ children }: PropsWithChildren) {
     const { data: user, isPending } = useGetUserQuery({ queryKey: ["getUser"] });
     if (isPending) return <p role="status" className="px-6 py-8">Checking your session…</p>;
     if (!user) return <Navigate to="/admin/login" replace />;

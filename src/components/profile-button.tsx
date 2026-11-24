@@ -27,6 +27,7 @@ export default function ProfileButton() {
             queryClient.removeQueries({ queryKey: ["adminForm"] });
             queryClient.removeQueries({ queryKey: ["adminForms"] });
             queryClient.removeQueries({ queryKey: ["publishedForms"] });
+            queryClient.removeQueries({ queryKey: ["adminSubmissions"] });
             navigate("/", { replace: true });
         },
     });
