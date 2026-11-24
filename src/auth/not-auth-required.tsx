@@ -1,33 +1,11 @@
-import { PropsWithChildren, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import type { PropsWithChildren } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import { useGetUserQuery } from "./queryHooks";
-import RedirectingPlaceHolder from "@/components/ui/redirecting";
-import { useAuthStore } from "./auth-store";
+import { userSignInDestination } from "./sign-in-destination";
 
-const NotAuthRequired = (props: PropsWithChildren) => {
-    const isAuthenticated = useAuthStore(store => store.isAuthenticated);
-    const location = useLocation();
-    const params = new URLSearchParams(location.search);
-    const from = params.get("from") || "/";
-    const navigate = useNavigate();
-
-    const { isSuccess: isSuccessGetUser } = useGetUserQuery({ queryKey: ["getUser"] });
-
-    useEffect(() => {
-        if (isAuthenticated) {
-            navigate(from);
-        }
-    }, [isAuthenticated, navigate, from]);
-
-    if (isSuccessGetUser || isAuthenticated) {
-        return (
-            <div className="flex justify-center items-center h-full w-full">
-                <RedirectingPlaceHolder />
-            </div>
-        );
-    }
-
-    return props.children;
-};
-
-export default NotAuthRequired;
+export default function NotAuthRequired({ children }: PropsWithChildren) {
+    const { data: user } = useGetUserQuery({ queryKey: ["getUser"] });
+    const { search } = useLocation();
+    if (user) return <Navigate to={userSignInDestination(search)} replace />;
+    return children;
+}

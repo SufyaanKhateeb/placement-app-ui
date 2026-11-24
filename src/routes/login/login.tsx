@@ -12,6 +12,7 @@ import { SubmitHandler, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { setIsAuthenticated } from "@/auth/auth-actions";
+import { userSignInDestination } from "@/auth/sign-in-destination";
 
 import { axiosInstance } from "@/config/axios";
 
@@ -38,7 +39,8 @@ function GoogleSignInButton({ admin }: { admin: boolean }) {
 export function LoginPage({ admin = false }: { admin?: boolean }) {
     const location = useLocation();
     const params = new URLSearchParams(location.search);
-    const from = admin ? "/admin" : params.get("from") || "/";
+    const from = admin ? "/admin/forms" : userSignInDestination(location.search);
+    const registerSearch = new URLSearchParams({ from }).toString();
     const providerError = params.get("error");
     const googleError = providerError === "google_admin_unlinked"
         ? "Sign in with your admin password first to connect Google."
@@ -51,47 +53,34 @@ export function LoginPage({ admin = false }: { admin?: boolean }) {
             : null;
 
     return (
-        <>
-            <div className="container max-w-7xl h-full relative flex flex-col items-center justify-center sm:grid lg:grid-cols-2 lg:px-0">
-                <div className="relative hidden h-full flex-col justify-center p-10 lg:flex">
-                    <div className="relative z-20 max-w-96 mr-auto">
-                        <blockquote className="space-y-2">
-                            <p className="text-4xl font-bold">
-                                &ldquo;Any fact facing us is not as important as our attitude toward it, for that determines our success or
-                                failure.&rdquo;
-                            </p>
-                            <footer className="text-lg">Norman Vincent Peale</footer>
-                        </blockquote>
-                    </div>
+        <div className="flex flex-1 px-4 py-8">
+            <section className="auth-panel">
+                <div className="flex flex-col gap-2">
+                    <h1 className="text-2xl font-semibold tracking-tight">{admin ? "Admin sign-in" : "Welcome back"}</h1>
+                    <p className="text-sm text-muted-foreground">
+                        {admin ? "Sign in to create and manage forms." : "Sign in to browse published forms."}
+                    </p>
                 </div>
-                <div className="lg:p-8">
-                    <div className="mx-auto flex w-full flex-col justify-center space-y-6 max-w-[350px]">
-                        <div className="flex flex-col space-y-2 text-center">
-                            <h1 className="text-4xl font-semibold">{admin ? "Admin sign-in" : "Welcome back"}</h1>
-                            <p className="text-sm text-muted-foreground">Please enter your details below to sign in.</p>
-                        </div>
-                        {googleError && (
-                            <Alert variant="destructive">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertDescription>{googleError}</AlertDescription>
-                            </Alert>
-                        )}
-                        <GoogleSignInButton admin={admin} />
-                        <LoginForm fromUrl={from} admin={admin} />
-                        <div className="flex justify-center gap-3 text-sm text-muted-foreground">
-                            {admin ? (
-                                <Link to="/login" className="underline underline-offset-4">User sign-in</Link>
-                            ) : (
-                                <>
-                                    <Link to="/register" className="underline underline-offset-4">Register</Link>
-                                    <Link to="/admin/login" className="underline underline-offset-4">Admin sign-in</Link>
-                                </>
-                            )}
-                        </div>
-                    </div>
+                {googleError && (
+                    <Alert variant="destructive">
+                        <AlertCircle className="size-4" />
+                        <AlertDescription>{googleError}</AlertDescription>
+                    </Alert>
+                )}
+                <GoogleSignInButton admin={admin} />
+                <LoginForm fromUrl={from} admin={admin} />
+                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                    {admin ? (
+                        <Link to="/login" className="underline underline-offset-4">User sign-in</Link>
+                    ) : (
+                        <>
+                            <Link to={"/register?" + registerSearch} className="underline underline-offset-4">Create account</Link>
+                            <Link to="/admin/login" className="underline underline-offset-4">Admin sign-in</Link>
+                        </>
+                    )}
                 </div>
-            </div>
-        </>
+            </section>
+        </div>
     );
 }
 
@@ -119,7 +108,7 @@ function LoginForm({ className, fromUrl, admin, ...props }: UserAuthFormProps) {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["getUser"] });
             setIsAuthenticated(true);
-            navigate(fromUrl || "/");
+            navigate(fromUrl || "/forms", { replace: true });
         },
     }, admin);
 
@@ -161,10 +150,11 @@ function LoginForm({ className, fromUrl, admin, ...props }: UserAuthFormProps) {
                         <Label htmlFor="password">Password</Label>
                         <Input
                             {...register("password")}
+                            id="password"
                             placeholder="password"
                             type="password"
                             autoCapitalize="none"
-                            autoComplete="password"
+                            autoComplete="current-password"
                             autoCorrect="off"
                             required
                         />

@@ -4,7 +4,6 @@ import ErrorPage from "./err-page";
 import Layout from "./layout/main-layout";
 import Root from "./routes/root";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { LoginPage } from "./routes/login/login";
 import { AdminPage } from "./routes/login/admin";
 import { AdminFormsPage, FormEditorPage } from "./routes/forms/admin-forms";
@@ -105,7 +104,6 @@ async function authLoader({ request }: LoaderFunctionArgs) {
 function App() {
     return (
         <QueryClientProvider client={queryClient}>
-            <ReactQueryDevtools />
             <RouterProvider router={router} />
             <Toaster />
         </QueryClientProvider>

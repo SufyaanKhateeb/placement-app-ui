@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import type { FieldRules, FieldType, FormField } from "./api";
 
 const lengths = [
@@ -20,7 +20,7 @@ function toLocalDateTime(value: string | undefined) {
     return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 }
 
-export function RulesEditor({ field, onChange }: { field: FormField; onChange: (rules: FieldRules | undefined) => void }) {
+export function RulesEditor({ field, disabled, onChange }: { field: FormField; disabled: boolean; onChange: (rules: FieldRules | undefined) => void }) {
     if (field.type === "boolean") return null;
     const rules = field.rules ?? {};
 
@@ -30,46 +30,47 @@ export function RulesEditor({ field, onChange }: { field: FormField; onChange: (
     }
 
     return (
-        <div className="space-y-4 border-t pt-4">
-            <div>
-                <h3 className="text-sm font-semibold">Validation</h3>
-                <p className="mt-1 text-xs text-muted-foreground">Leave a limit blank to allow any valid value.</p>
-            </div>
-            {field.type === "text" ? (
-                <>
-                    <div className="grid grid-cols-2 gap-3">
-                        {lengths.map(({ key, label }) => (
-                            <div key={key} className="space-y-2">
-                                <Label htmlFor={"rule-" + key}>{label}</Label>
-                                <Input id={"rule-" + key} type="number" min={0} max={4000} step={1}
-                                    value={rules[key] ?? ""} placeholder="No limit"
-                                    onChange={event => setRule(key, event.target.value ? Number(event.target.value) : undefined)} />
-                            </div>
-                        ))}
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="rule-pattern">Regex pattern</Label>
-                        <Input id="rule-pattern" className="font-mono" maxLength={256} value={rules.pattern ?? ""}
-                            placeholder="^[A-Z]{3}-[0-9]{3}$"
-                            aria-describedby="rule-pattern-help"
-                            onChange={event => setRule("pattern", event.target.value || undefined)} />
-                        <p id="rule-pattern-help" className="text-xs text-muted-foreground">Use Go regex syntax. Add ^ and $ to match the whole answer.</p>
-                    </div>
-                </>
-            ) : (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                    <RangeInput name="min" fieldType={field.type} value={rules.min} onChange={value => setRule("min", value)} />
-                    <RangeInput name="max" fieldType={field.type} value={rules.max} onChange={value => setRule("max", value)} />
-                </div>
-            )}
-            {field.type === "timestamptz" && <p className="text-xs text-muted-foreground">Date and time limits use your local time zone.</p>}
-        </div>
+        <FieldSet disabled={disabled} className="gap-3">
+            <FieldLegend variant="label">Validation</FieldLegend>
+            <FieldDescription>Leave a limit blank to allow any valid value.</FieldDescription>
+            <FieldGroup className="gap-4">
+                {field.type === "text" ? (
+                    <>
+                        <FieldGroup className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                            {lengths.map(({ key, label }) => (
+                                <Field key={key} data-disabled={disabled}>
+                                    <FieldLabel htmlFor={"rule-" + key}>{label}</FieldLabel>
+                                    <Input id={"rule-" + key} type="number" disabled={disabled} min={0} max={4000} step={1}
+                                        value={rules[key] ?? ""} placeholder="No limit"
+                                        onChange={event => setRule(key, event.target.value ? Number(event.target.value) : undefined)} />
+                                </Field>
+                            ))}
+                        </FieldGroup>
+                        <Field data-disabled={disabled}>
+                            <FieldLabel htmlFor="rule-pattern">Regex pattern</FieldLabel>
+                            <Input id="rule-pattern" disabled={disabled} maxLength={256} value={rules.pattern ?? ""}
+                                placeholder="^[A-Z]{3}-[0-9]{3}$"
+                                aria-describedby="rule-pattern-help"
+                                onChange={event => setRule("pattern", event.target.value || undefined)} />
+                            <FieldDescription id="rule-pattern-help">Use Go regex syntax. Add ^ and $ to match the whole answer.</FieldDescription>
+                        </Field>
+                    </>
+                ) : (
+                    <FieldGroup className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                        <RangeInput name="min" fieldType={field.type} disabled={disabled} value={rules.min} onChange={value => setRule("min", value)} />
+                        <RangeInput name="max" fieldType={field.type} disabled={disabled} value={rules.max} onChange={value => setRule("max", value)} />
+                    </FieldGroup>
+                )}
+            </FieldGroup>
+            {field.type === "timestamptz" && <FieldDescription>Date and time limits use your local time zone.</FieldDescription>}
+        </FieldSet>
     );
 }
 
-function RangeInput({ name, fieldType, value, onChange }: {
+function RangeInput({ name, fieldType, disabled, value, onChange }: {
     name: "min" | "max";
     fieldType: FieldType;
+    disabled: boolean;
     value?: string;
     onChange: (value: string | undefined) => void;
 }) {
@@ -81,12 +82,12 @@ function RangeInput({ name, fieldType, value, onChange }: {
         : (isMinimum ? "Minimum value" : "Maximum value");
 
     return (
-        <div className="min-w-0 space-y-2">
-            <Label htmlFor={"rule-" + name}>{label}</Label>
-            <Input id={"rule-" + name} type={time ? "datetime-local" : date ? "date" : "text"}
+        <Field className="min-w-0" data-disabled={disabled}>
+            <FieldLabel htmlFor={"rule-" + name}>{label}</FieldLabel>
+            <Input id={"rule-" + name} disabled={disabled} type={time ? "datetime-local" : date ? "date" : "text"}
                 inputMode={fieldType === "numeric" ? "decimal" : fieldType === "integer" ? "numeric" : undefined}
                 value={time ? toLocalDateTime(value) : value ?? ""} placeholder="No limit" maxLength={100}
                 onChange={event => onChange(time ? fromLocalDateTime(event.target.value) : event.target.value || undefined)} />
-        </div>
+        </Field>
     );
 }

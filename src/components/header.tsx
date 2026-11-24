@@ -1,147 +1,72 @@
-import { Icons } from "./icons";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Button, buttonVariants } from "./ui/button";
-import { cn } from "@/lib/utils";
-import { ModeToggle } from "./mode-toggle";
-import { MainNav } from "./main-nav";
-import { MobileNav } from "./mobile-nav";
-import gsap from "gsap";
-import { useTheme } from "./theme-provider";
-import { useEffect, useRef } from "react";
+import { ClipboardList, FileText, House, Shield, type LucideIcon } from "lucide-react";
+import { NavLink } from "react-router-dom";
 import { useAuthStore } from "@/auth/auth-store";
 import { useGetUserQuery } from "@/auth/queryHooks";
+import { MainNav } from "./main-nav";
+import { MobileNav } from "./mobile-nav";
+import { ModeToggle } from "./mode-toggle";
 import ProfileButton from "./profile-button";
+import { Button } from "./ui/button";
 
-function Header() {
-    const containerRef = useRef<HTMLElement>(null);
-    const { theme } = useTheme();
-    const navigate = useNavigate();
-    const location = useLocation();
-    const authenticated = useAuthStore((store) => store.isAuthenticated);
+export default function Header() {
     const { data: user, isPending } = useGetUserQuery({ queryKey: ["getUser"] });
-    const isSignInPage = ["/login", "/register", "/admin/login"].includes(location.pathname);
-    const authActionsVisible = !isPending && !user && !authenticated && !isSignInPage;
-
-    useEffect(() => {
-        const tl = gsap
-            .timeline({
-                scrollTrigger: {
-                    scroller: ".main-layout-container",
-                    end: "+=1",
-                    toggleActions: "play none reverse none",
-                },
-            })
-            .to(
-                ".header-animation",
-                {
-                    duration: 0.3,
-                    maxWidth: "50rem",
-                    borderRadius: "0.5rem",
-                    boxShadow:
-                        theme === "dark"
-                            ? "0 2px 4px #0c090854,0 6px 6px #0c09084a,0 14px 9px #0c09082b,0 26px 10px #0c09080d,0 40px 11px #0c090803,0 1px #d6cfc21f inset"
-                            : "0 0 2px #5f4a2e14,0 2px 3px #5f4a2e0a,0 4px 6px #5f4a2e0a,0 20px 32px -12px #5f4a2e1f",
-                },
-                0
-            )
-            .fromTo(".header-actions-container", { duration: 0.3, x: authActionsVisible ? "95px" : "0px" }, { duration: 0.3, x: "0px" }, 0.2)
-            .fromTo(".sign-up-button", { duration: 0.3, opacity: 0 }, { opacity: 1 }, "<0");
-
-        return () => {
-            tl.revert();
-        };
-    }, [theme, authActionsVisible]);
+    const signingIn = useAuthStore(store => store.isAuthenticated);
+    const workspaceLinks: { to: string; label: string; end?: boolean; icon: LucideIcon }[] = [
+        { to: "/", label: "Home", end: true, icon: House },
+        { to: "/forms", label: "Forms", icon: FileText },
+    ];
+    if (user?.role === "admin") {
+        workspaceLinks.push(
+            { to: "/admin/forms", label: "Manage forms", icon: ClipboardList },
+            { to: "/admin", label: "Admin account", end: true, icon: Shield },
+        );
+    }
+    const guestLinks = !isPending && !signingIn && !user ? [
+        { to: "/login", label: "Sign in" },
+        { to: "/register", label: "Create account" },
+        { to: "/admin/login", label: "Admin sign-in" },
+    ] : [];
 
     return (
-        <header ref={containerRef} className="header-animation-parent sticky top-0 md:top-6 z-50 w-full">
-            <div className="header-animation container p-3 flex h-14 max-w-7xl items-center max-sm:!rounded-none border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 overflow-hidden">
-                <MainNav />
-                <MobileNav />
-                <div className="header-actions-container flex flex-1 items-center justify-end gap-2 md:justify-end">
-                    <nav className="flex items-center">
-                        <Link to={"/college-github"} target="_blank" rel="noreferrer">
-                            <div
-                                className={cn(
-                                    buttonVariants({
-                                        variant: "ghost",
-                                    }),
-                                    "h-8 w-8 px-0"
-                                )}
-                            >
-                                <Icons.gitHub className="h-4 w-4" />
-                                <span className="sr-only">GitHub</span>
-                            </div>
-                        </Link>
-                        <Link to={"college-twitter"} target="_blank" rel="noreferrer">
-                            <div
-                                className={cn(
-                                    buttonVariants({
-                                        variant: "ghost",
-                                    }),
-                                    "h-8 w-8 px-0"
-                                )}
-                            >
-                                <Icons.twitter className="h-3 w-3 fill-current" />
-                                <span className="sr-only">Twitter</span>
-                            </div>
-                        </Link>
-                        {user && <Button size="sm" variant="ghost" asChild><Link to="/forms">Forms</Link></Button>}
+        <>
+            <header className="workspace-topbar sticky top-0 z-40 border-b bg-background">
+                <div className="flex min-h-14 items-center gap-2 px-4 sm:px-6">
+                    <MobileNav links={user ? workspaceLinks.slice(1) : guestLinks} />
+                    <MainNav />
+                    {!user && (
+                        <nav aria-label="Main navigation" className="ml-auto hidden items-center gap-1 md:flex">
+                            {guestLinks.map(({ to, label }) => (
+                                <Button key={to} size="sm" variant="ghost" asChild className="aria-[current=page]:bg-accent">
+                                    <NavLink to={to}>{label}</NavLink>
+                                </Button>
+                            ))}
+                        </nav>
+                    )}
+                    <div className="ml-auto flex shrink-0 items-center gap-1">
                         <ModeToggle />
-                        <Button className={cn("ml-2", { hidden: !authActionsVisible })} size="sm" variant="ghost" onClick={() => navigate("/login")}>
-                            Log in
-                        </Button>
-                        <Button
-                            className={cn("sign-up-button ml-2", { hidden: !authActionsVisible })}
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigate("/register")}
-                        >
-                            Sign up
-                        </Button>
                         <ProfileButton />
-                    </nav>
+                    </div>
                 </div>
-            </div>
-        </header>
+            </header>
+            {user && (
+                <aside className="workspace-rail hidden min-h-0 flex-col gap-5 md:flex">
+                    <div className="flex min-h-10 items-center px-2"><MainNav compact /></div>
+                    <nav aria-label="Main navigation" className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+                        {workspaceLinks.map(({ to, label, end, icon: Icon }) => (
+                            <Button key={to} size="sm" variant="ghost" asChild className="workspace-nav-link justify-start gap-2">
+                                <NavLink to={to} end={end}>
+                                    <Icon data-icon="inline-start" aria-hidden="true" />
+                                    {label}
+                                </NavLink>
+                            </Button>
+                        ))}
+                    </nav>
+                    <div className="flex items-center justify-between gap-2 border-t pt-2">
+                        <ProfileButton />
+                        <ModeToggle />
+                    </div>
+                </aside>
+            )}
+        </>
     );
 }
-
-export default Header;
-
-// <header className="sticky top-0 z-50 w-full border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-//     <div className="container flex h-14 max-w-screen-2xl items-center">
-//         <div className="mr-4 hidden md:flex">
-//             <a className="mr-4 text-primary flex items-center space-x-2 lg:mr-6" href="/">
-//                 <HandshakeIcon className="h-8 w-8" />
-//                 <span className="hidden font-bold lg:inline-block">TPAccess</span>
-//             </a>
-//             <nav className="flex items-center gap-4 text-sm lg:gap-6">
-//                 <a className="transition-colors hover:text-foreground/80 text-foreground/60" href="/docs">
-//                     Docs
-//                 </a>
-//                 <a className="transition-colors hover:text-foreground/80 text-foreground" href="/docs/components">
-//                     Components
-//                 </a>
-//                 <a className="transition-colors hover:text-foreground/80 text-foreground/60" href="/blocks">
-//                     Blocks
-//                 </a>
-//                 <a className="transition-colors hover:text-foreground/80 text-foreground/60" href="/charts">
-//                     Charts
-//                 </a>
-//                 <a className="transition-colors hover:text-foreground/80 text-foreground/60" href="/themes">
-//                     Themes
-//                 </a>
-//                 <a className="transition-colors hover:text-foreground/80 text-foreground/60" href="/examples">
-//                     Examples
-//                 </a>
-//                 <a className="transition-colors hover:text-foreground/80 text-foreground/60" href="/colors">
-//                     Colors
-//                 </a>
-//             </nav>
-//         </div>
-//     </div>
-//     {/* <div className="text-primary flex items-center">
-//         <p className="text-xl font-bold ml-2">Placement App</p>
-//     </div> */}
-//     {user && <Button size="sm" variant="ghost" asChild><Link to="/forms">Forms</Link></Button>}
-                        <ModeToggle />

@@ -5,7 +5,9 @@ import type { PropsWithChildren } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { useGetUserQuery } from "@/auth/queryHooks";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { axiosInstance } from "@/config/axios";
 import { adminFormsPath, getAdminForm, isDraftConflict, requestError } from "./api";
 import type { AdminForm, FieldType, FormDefinition, FormField, FormSummary } from "./api";
@@ -17,7 +19,17 @@ function AdminFormsGuard({ children }: PropsWithChildren) {
     const { data: user, isPending } = useGetUserQuery({ queryKey: ["getUser"] });
     if (isPending) return <p role="status" className="px-6 py-8">Checking your session…</p>;
     if (!user) return <Navigate to="/admin/login" replace />;
-    if (user.role !== "admin") return <p className="px-6 py-8">Admin access required.</p>;
+    if (user.role !== "admin") {
+        return (
+            <section className="mx-auto flex w-full max-w-lg flex-col items-start gap-4 px-6 py-10">
+                <h1 className="text-xl font-semibold">Admin access required</h1>
+                <div className="flex flex-wrap gap-2">
+                    <Button asChild><Link to="/forms">Browse forms</Link></Button>
+                    <Button variant="outline" asChild><Link to="/admin/login">Admin sign-in</Link></Button>
+                </div>
+            </section>
+        );
+    }
     return children;
 }
 
@@ -42,32 +54,58 @@ function AdminFormsList() {
     });
 
     return (
-        <section className="mx-auto w-full max-w-4xl space-y-6 px-6 py-10">
-            <div className="flex items-center justify-between gap-4">
-                <div><Link to="/admin" className="text-sm text-muted-foreground hover:underline">Admin account</Link>
-                    <h1 className="mt-2 text-2xl font-semibold">Forms</h1></div>
-                <Button onClick={() => create.mutate()} disabled={create.isPending}>
-                    <Plus className="mr-2 h-4 w-4" /> {create.isPending ? "Creating…" : "New form"}
+        <section className="workspace-list-page workspace-list-admin">
+            <div className="workspace-page-heading">
+                <div>
+                    <h1>Manage forms</h1>
+                </div>
+                <Button size="sm" className="gap-2" onClick={() => create.mutate()} disabled={create.isPending}>
+                    <Plus data-icon="inline-start" aria-hidden="true" /> {create.isPending ? "Creating…" : "New form"}
                 </Button>
             </div>
-            {forms.isPending && <p role="status">Loading forms…</p>}
+            <div className="workspace-list-toolbar">
+                <span className="font-medium text-foreground">All forms</span>
+                {forms.data && <span className="tabular-nums">{forms.data.length}</span>}
+            </div>
+            {forms.isPending && <p role="status" className="p-4 text-sm text-muted-foreground">Loading forms…</p>}
             {forms.isError && <Alert variant="destructive"><AlertDescription>Could not load forms.</AlertDescription></Alert>}
             {create.isError && <Alert variant="destructive"><AlertDescription>{requestError(create.error, "Could not create form.")}</AlertDescription></Alert>}
-            {forms.data?.length === 0 && <p className="rounded-lg border p-5 text-sm text-muted-foreground">No forms yet.</p>}
+            {forms.data?.length === 0 && (
+                <Empty className="mx-auto mt-14 max-w-sm">
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon"><FileText aria-hidden="true" /></EmptyMedia>
+                        <EmptyTitle>No forms yet</EmptyTitle>
+                        <EmptyDescription>Create a form to start drafting.</EmptyDescription>
+                    </EmptyHeader>
+                </Empty>
+            )}
             {!!forms.data?.length && (
-                <ul className="divide-y overflow-hidden rounded-lg border">
-                    {forms.data.map(form => (
-                        <li key={form.id}>
-                            <Link className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/50" to={adminFormsPath + "/" + form.id}>
-                                <span className="min-w-0 flex items-center gap-3"><FileText className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate font-medium">{form.title}</span></span>
-                                <span className="text-sm text-muted-foreground">
-                                    {form.publishedVersion > 0 ? "Published v" + form.publishedVersion : "Draft"}
-                                    {form.publishedVersion > 0 && form.hasDraft && " · Draft in progress"}
-                                </span>
-                            </Link>
-                        </li>
-                    ))}
-                </ul>
+                <div>
+                    <div className="workspace-list-columns" aria-hidden="true">
+                        <span>Form</span>
+                        <span>Status</span>
+                        <span className="workspace-list-version hidden md:block">Version</span>
+                    </div>
+                    <ul>
+                        {forms.data.map(form => (
+                            <li key={form.id}>
+                                <Link className="workspace-list-row" to={adminFormsPath + "/" + form.id}>
+                                    <span className="flex min-w-0 items-center gap-3">
+                                        <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                        <span className="truncate font-medium">{form.title}</span>
+                                    </span>
+                                    <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+                                        {form.publishedVersion > 0 && <CircleCheck className="size-3.5 text-primary" aria-hidden="true" />}
+                                        {form.publishedVersion > 0 ? (form.hasDraft ? "Live · Draft" : "Live") : "Draft"}
+                                    </span>
+                                    <span className="workspace-list-version hidden text-xs text-muted-foreground md:block">
+                                        {form.publishedVersion > 0 ? "v" + form.publishedVersion : "—"}
+                                    </span>
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
             )}
         </section>
     );
@@ -171,15 +209,15 @@ function FormEditor({ initialForm }: { initialForm: AdminForm }) {
     const latestDefinition = latest?.draft ?? latest?.published;
     const showingPreview = previewing || !draft;
     return (
-        <section className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:py-10">
+        <section className="workspace-page">
             <Link to={adminFormsPath} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
                 <ChevronLeft className="h-4 w-4" /> All forms
             </Link>
-            <div className="flex flex-wrap items-start justify-between gap-4 border-b pb-5">
+            <div className="workspace-page-heading">
                 <div className="min-w-0">
-                    <h1 className="break-words text-2xl font-semibold tracking-tight">{current?.title || "Untitled form"}</h1>
+                    <h1 className="break-words">{current?.title || "Untitled form"}</h1>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        {draft && <span className="rounded-md bg-muted px-2 py-1 font-medium text-foreground">Draft</span>}
+                        {draft && <Badge variant="secondary">Draft</Badge>}
                         {saved.publishedVersion > 0 && (
                             <span className="inline-flex items-center gap-1 rounded-md border px-2 py-1 font-medium">
                                 <CircleCheck className="h-3 w-3" /> Live v{saved.publishedVersion}
@@ -247,7 +285,7 @@ function FormEditor({ initialForm }: { initialForm: AdminForm }) {
                 </Alert>
             )}
             {showingPreview && current && (
-                <div className="mx-auto w-full max-w-2xl space-y-4 rounded-xl border bg-background p-5 shadow-sm sm:p-8">
+                <div className="workspace-view-enter mx-auto flex w-full max-w-2xl flex-col gap-4 rounded-xl border bg-card p-5 sm:p-8">
                     <div className="flex items-center gap-2 border-b pb-3 text-xs font-medium text-muted-foreground">
                         <Eye className="h-4 w-4" /> {draft ? "Preview · Answers aren’t saved" : "Published form"}
                     </div>
@@ -255,14 +293,16 @@ function FormEditor({ initialForm }: { initialForm: AdminForm }) {
                 </div>
             )}
             {!showingPreview && draft && (
-                <BuilderWorkspace draft={draft} selectedID={selectedID} disabled={change.isPending}
-                    onSelect={setSelectedID}
-                    onDetails={details => { setDraft({ ...draft, ...details }); setNotice(""); }}
-                    onAdd={addField} onUpdate={updateField} onMove={moveField}
-                    onRemove={id => {
-                        updateFields(fields => fields.filter(field => field.id !== id));
-                        setSelectedID(null);
-                    }} />
+                <div className="workspace-view-enter">
+                    <BuilderWorkspace draft={draft} selectedID={selectedID} disabled={change.isPending}
+                        onSelect={setSelectedID}
+                        onDetails={details => { setDraft({ ...draft, ...details }); setNotice(""); }}
+                        onAdd={addField} onUpdate={updateField} onMove={moveField}
+                        onRemove={id => {
+                            updateFields(fields => fields.filter(field => field.id !== id));
+                            setSelectedID(null);
+                        }} />
+                </div>
             )}
         </section>
     );

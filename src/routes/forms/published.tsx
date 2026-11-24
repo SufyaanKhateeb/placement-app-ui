@@ -1,5 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, ArrowUpRight, FileText } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { axiosInstance } from "@/config/axios";
 import { publishedFormsPath, requestError } from "./api";
 import type { FormSummary, PublishedForm } from "./api";
@@ -11,17 +16,46 @@ export function PublishedFormsPage() {
         queryFn: async () => (await axiosInstance.get<FormSummary[]>(publishedFormsPath)).data,
         retry: false,
     });
+
     return (
-        <section className="mx-auto w-full max-w-3xl space-y-5 px-6 py-10">
-            <h1 className="text-2xl font-semibold">Forms</h1>
-            {forms.isPending && <p role="status">Loading forms…</p>}
-            {forms.isError && <p role="alert">Could not load forms.</p>}
-            {forms.data?.length === 0 && <p className="text-sm text-muted-foreground">No forms have been published.</p>}
-            {!!forms.data?.length && <ul className="divide-y overflow-hidden rounded-lg border">
-                {forms.data.map(form => <li key={form.id}>
-                    <Link className="block px-4 py-3 hover:bg-muted/50" to={publishedFormsPath + "/" + form.id}>{form.title}</Link>
-                </li>)}
-            </ul>}
+        <section className="workspace-list-page">
+            <div className="workspace-page-heading">
+                <div>
+                    <h1>Forms</h1>
+                </div>
+            </div>
+            <div className="workspace-list-toolbar">
+                <span className="font-medium text-foreground">Published forms</span>
+                {forms.data && <span className="tabular-nums">{forms.data.length}</span>}
+            </div>
+            {forms.isPending && <p role="status" className="p-4 text-sm text-muted-foreground">Loading forms…</p>}
+            {forms.isError && <Alert variant="destructive"><AlertDescription>Could not load forms.</AlertDescription></Alert>}
+            {forms.data?.length === 0 && (
+                <Empty className="mx-auto mt-14 max-w-sm">
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon"><FileText aria-hidden="true" /></EmptyMedia>
+                        <EmptyTitle>No forms have been published</EmptyTitle>
+                    </EmptyHeader>
+                </Empty>
+            )}
+            {!!forms.data?.length && (
+                <ul>
+                    {forms.data.map(form => (
+                        <li key={form.id}>
+                            <Link className="workspace-list-row" to={publishedFormsPath + "/" + form.id}>
+                                <span className="flex min-w-0 items-center gap-3">
+                                    <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                    <span className="truncate font-medium">{form.title}</span>
+                                </span>
+                                <span className="flex items-center gap-2">
+                                    <Badge variant="outline">Version {form.publishedVersion}</Badge>
+                                    <ArrowUpRight className="size-4 text-muted-foreground" aria-hidden="true" />
+                                </span>
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
+            )}
         </section>
     );
 }
@@ -33,15 +67,20 @@ export function PublishedFormPage() {
         queryFn: async () => (await axiosInstance.get<PublishedForm>(publishedFormsPath + "/" + id)).data,
         retry: false,
     });
+
     return (
-        <section className="mx-auto w-full max-w-2xl space-y-5 px-6 py-10">
-            <Link className="text-sm text-muted-foreground hover:underline" to="/forms">All forms</Link>
-            {form.isPending && <p role="status">Loading form…</p>}
-            {form.isError && <p role="alert">{requestError(form.error, "Could not load form.")}</p>}
-            {form.data && <div className="space-y-5 rounded-lg border p-5">
-                <FormPreview definition={form.data.definition} />
-                <p className="text-sm text-muted-foreground">Submissions are not available yet.</p>
-            </div>}
+        <section className="workspace-page max-w-3xl">
+            <Button variant="ghost" size="sm" className="w-fit gap-2" asChild>
+                <Link to="/forms"><ArrowLeft data-icon="inline-start" aria-hidden="true" /> All forms</Link>
+            </Button>
+            {form.isPending && <p role="status" className="text-sm text-muted-foreground">Loading form…</p>}
+            {form.isError && <Alert variant="destructive"><AlertDescription>{requestError(form.error, "Could not load form.")}</AlertDescription></Alert>}
+            {form.data && (
+                <div className="flex flex-col gap-5 rounded-lg border bg-card p-5 sm:p-7">
+                    <FormPreview definition={form.data.definition} />
+                    <p className="text-sm text-muted-foreground">Submissions are not available yet.</p>
+                </div>
+            )}
         </section>
     );
 }
