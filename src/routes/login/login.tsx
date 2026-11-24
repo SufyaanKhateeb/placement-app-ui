@@ -39,7 +39,7 @@ function GoogleSignInButton({ admin }: { admin: boolean }) {
 export function LoginPage({ admin = false }: { admin?: boolean }) {
     const location = useLocation();
     const params = new URLSearchParams(location.search);
-    const from = admin ? "/admin/forms" : userSignInDestination(location.search);
+    const from = admin ? "/admin" : userSignInDestination(location.search);
     const registerSearch = new URLSearchParams({ from }).toString();
     const providerError = params.get("error");
     const googleError = providerError === "google_admin_unlinked"
@@ -58,7 +58,7 @@ export function LoginPage({ admin = false }: { admin?: boolean }) {
                 <div className="flex flex-col gap-2">
                     <h1 className="text-2xl font-semibold tracking-tight">{admin ? "Admin sign-in" : "Welcome back"}</h1>
                     <p className="text-sm text-muted-foreground">
-                        {admin ? "Sign in to create and manage forms." : "Sign in to browse published forms."}
+                        {admin ? "Use your admin account to sign in." : "Sign in to browse published forms."}
                     </p>
                 </div>
                 {googleError && (

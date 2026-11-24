@@ -6,6 +6,7 @@ import Root from "./routes/root";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LoginPage } from "./routes/login/login";
 import { AdminPage } from "./routes/login/admin";
+import { AccessPage } from "./routes/access/access-page";
 import { AdminSubmissionsPage, AdminSubmissionPage } from "./routes/forms/admin-submissions";
 import { AdminFormsPage, FormEditorPage } from "./routes/forms/admin-forms";
 import { PublishedFormsPage, PublishedFormPage } from "./routes/forms/published";
@@ -14,6 +15,8 @@ import { Toaster } from "./components/ui/toaster";
 import { RegisterPage } from "./routes/register/register";
 import Authenticated from "./auth/Authenticated";
 import AuthRequired from "./auth/auth-required";
+import { PermissionGuard } from "./auth/permission-guard";
+import { permissions } from "./auth/permissions";
 import NotAuthRequired from "./auth/not-auth-required";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -71,14 +74,15 @@ const router = createBrowserRouter([
                     },
                     { path: "admin/submissions", element: <AdminSubmissionsPage /> },
                     { path: "admin/submissions/:id", element: <AdminSubmissionPage /> },
+                    { path: "admin/access", element: <AccessPage /> },
                     {
                         path: "forms",
-                        element: authenticatedRequired(<PublishedFormsPage />),
+                        element: authenticatedRequired(<PermissionGuard permission={permissions.browseForms}><PublishedFormsPage /></PermissionGuard>),
                         loader: authLoader,
                     },
                     {
                         path: "forms/:id",
-                        element: authenticatedRequired(<PublishedFormPage />),
+                        element: authenticatedRequired(<PermissionGuard permission={permissions.browseForms}><PublishedFormPage /></PermissionGuard>),
                         loader: authLoader,
                     },
                     {

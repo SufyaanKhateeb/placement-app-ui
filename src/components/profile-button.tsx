@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { setIsAuthenticated } from "@/auth/auth-actions";
+import { permissions } from "@/auth/permissions";
 import { useGetUserQuery } from "@/auth/queryHooks";
 import { useLogoutMutation } from "@/routes/logout/queryHooks";
 import { Avatar, AvatarFallback } from "./ui/avatar";
@@ -28,6 +29,7 @@ export default function ProfileButton() {
             queryClient.removeQueries({ queryKey: ["adminForms"] });
             queryClient.removeQueries({ queryKey: ["publishedForms"] });
             queryClient.removeQueries({ queryKey: ["adminSubmissions"] });
+            queryClient.removeQueries({ queryKey: ["access"] });
             navigate("/", { replace: true });
         },
     });
@@ -46,12 +48,14 @@ export default function ProfileButton() {
                 <DropdownMenuLabel className="max-w-64 truncate">{user.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                    <DropdownMenuItem asChild><Link to="/forms">Forms</Link></DropdownMenuItem>
+                    {user.permissions.includes(permissions.browseForms) && (
+                        <DropdownMenuItem asChild><Link to="/forms">Forms</Link></DropdownMenuItem>
+                    )}
+                    {user.permissions.includes(permissions.manageForms) && (
+                        <DropdownMenuItem asChild><Link to="/admin/forms">Manage forms</Link></DropdownMenuItem>
+                    )}
                     {user.role === "admin" && (
-                        <>
-                            <DropdownMenuItem asChild><Link to="/admin/forms">Manage forms</Link></DropdownMenuItem>
-                            <DropdownMenuItem asChild><Link to="/admin">Admin account</Link></DropdownMenuItem>
-                        </>
+                        <DropdownMenuItem asChild><Link to="/admin">Admin account</Link></DropdownMenuItem>
                     )}
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />

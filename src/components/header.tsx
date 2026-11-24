@@ -1,6 +1,7 @@
-import { ClipboardList, FileText, House, Inbox, Shield, type LucideIcon } from "lucide-react";
+import { ClipboardList, FileText, House, Inbox, KeyRound, Shield, type LucideIcon } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuthStore } from "@/auth/auth-store";
+import { permissions } from "@/auth/permissions";
 import { useGetUserQuery } from "@/auth/queryHooks";
 import { MainNav } from "./main-nav";
 import { MobileNav } from "./mobile-nav";
@@ -13,15 +14,12 @@ export default function Header() {
     const signingIn = useAuthStore(store => store.isAuthenticated);
     const workspaceLinks: { to: string; label: string; end?: boolean; icon: LucideIcon }[] = [
         { to: "/", label: "Home", end: true, icon: House },
-        { to: "/forms", label: "Forms", icon: FileText },
     ];
-    if (user?.role === "admin") {
-        workspaceLinks.push(
-            { to: "/admin/forms", label: "Manage forms", icon: ClipboardList },
-            { to: "/admin/submissions", label: "Submissions", icon: Inbox },
-            { to: "/admin", label: "Admin account", end: true, icon: Shield },
-        );
-    }
+    if (user?.permissions.includes(permissions.browseForms)) workspaceLinks.push({ to: "/forms", label: "Forms", icon: FileText });
+    if (user?.permissions.includes(permissions.manageForms)) workspaceLinks.push({ to: "/admin/forms", label: "Manage forms", icon: ClipboardList });
+    if (user?.permissions.includes(permissions.reviewSubmissions)) workspaceLinks.push({ to: "/admin/submissions", label: "Submissions", icon: Inbox });
+    if (user?.permissions.includes(permissions.manageRoles)) workspaceLinks.push({ to: "/admin/access", label: "Roles and access", icon: KeyRound });
+    if (user?.role === "admin") workspaceLinks.push({ to: "/admin", label: "Admin account", end: true, icon: Shield });
     const guestLinks = !isPending && !signingIn && !user ? [
         { to: "/login", label: "Sign in" },
         { to: "/register", label: "Create account" },

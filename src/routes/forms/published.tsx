@@ -1,6 +1,7 @@
 import { isAxiosError } from "axios";
 import { useState } from "react";
 import { useGetUserQuery } from "@/auth/queryHooks";
+import { permissions } from "@/auth/permissions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowUpRight, FileText } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
@@ -19,7 +20,7 @@ const publishedFormsListKey = ["publishedForms", "list"];
 export function PublishedFormsPage() {
     const { data: user } = useGetUserQuery({ queryKey: ["getUser"] });
     const forms = useQuery({
-        queryKey: [...publishedFormsListKey, user?.role, user?.id],
+        queryKey: [...publishedFormsListKey, user?.role, user?.id, user?.permissions.includes(permissions.browseRestricted)],
         queryFn: async () => (await axiosInstance.get<FormSummary[]>(publishedFormsPath)).data,
         retry: false,
     });
@@ -86,10 +87,10 @@ function PublishedFormContent({ id }: { id: string }) {
     const queryClient = useQueryClient();
     const path = publishedFormsPath + "/" + id;
     const submissionPath = path + "/submission";
-    const isUser = user?.role === "user";
+    const isUser = user?.role === "user" && user.permissions.includes(permissions.ownSubmissions);
     const submissionKey = ["publishedForms", id, "submission", user?.id];
     const form = useQuery({
-        queryKey: ["publishedForms", id],
+        queryKey: ["publishedForms", id, user?.role, user?.id, user?.permissions.includes(permissions.browseRestricted)],
         queryFn: async () => (await axiosInstance.get<PublishedForm>(path)).data,
         retry: false,
         refetchOnWindowFocus: false,
@@ -148,8 +149,8 @@ function PublishedFormContent({ id }: { id: string }) {
                     <Link to={publishedFormsPath + "/" + approvedAction.formId}>Open follow-up form</Link>
                 </Button>
             )}
-            {approvedAction?.kind === "assign_role" && (
-                <p className="text-sm">Application role assigned: <span className="font-medium">{approvedAction.role}</span></p>
+            {submission?.grantedRole && (
+                <p className="text-sm">Application role <span className="font-medium">{submission.grantedRole.name}</span></p>
             )}
             {versionChanged && !submission && (
                 <Button type="button" variant="outline" className="w-fit" disabled={form.isFetching} onClick={async () => {
