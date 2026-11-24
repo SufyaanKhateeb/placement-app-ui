@@ -28,7 +28,8 @@ export type FormField = {
     rules?: FieldRules;
 };
 
-export type ApprovalAction = { kind: "follow_up_form"; formId: number } | { kind: "assign_role"; role: string };
+export type RoleChoice = { id: number; key: string; name: string };
+export type ApprovalAction = { kind: "follow_up_form"; formId: number } | { kind: "assign_role"; roleId?: number; role?: string };
 
 export type FormDefinition = {
     title: string;
@@ -87,6 +88,7 @@ export type FormAnswers = Record<string, FormAnswer>;
 export type ReviewCommentPart = { text: string } | { fieldId: string };
 
 export type FormSubmission = {
+    grantedRole?: RoleChoice;
     id: number;
     version: number;
     revision: number;

@@ -3,6 +3,8 @@ import { isAxiosError } from "axios";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { PermissionGuard } from "@/auth/permission-guard";
+import { permissions } from "@/auth/permissions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
@@ -13,19 +15,18 @@ import { ReviewFeedback } from "./review-feedback";
 import { axiosInstance } from "@/config/axios";
 import { requestError } from "./api";
 import type { FormAnswer, FormSubmission } from "./api";
-import { AdminFormsGuard } from "./admin-forms";
 import { SubmissionStatusBadge } from "./submission-status";
 
 const submissionsPath = "/admin/submissions";
 
 
 type Submitter = { userName: string; userEmail: string };
-type Review = FormSubmission & Submitter;
+type Review = FormSubmission & Submitter & { approvalRoleAvailable?: boolean };
 type ReviewItem = Pick<Review, "id" | "status" | "version" | "submittedAt"> & Submitter & { formTitle: string };
 type Decision = "approved" | "changes_requested";
 
 export function AdminSubmissionsPage() {
-    return <AdminFormsGuard><SubmissionQueue /></AdminFormsGuard>;
+    return <PermissionGuard permission={permissions.reviewSubmissions}><SubmissionQueue /></PermissionGuard>;
 }
 
 function SubmissionQueue() {
@@ -72,7 +73,7 @@ function SubmissionQueue() {
 
 export function AdminSubmissionPage() {
     const { id = "" } = useParams();
-    return <AdminFormsGuard><SubmissionDetail key={id} id={id} /></AdminFormsGuard>;
+    return <PermissionGuard permission={permissions.reviewSubmissions}><SubmissionDetail key={id} id={id} /></PermissionGuard>;
 }
 
 function SubmissionDetail({ id }: { id: string }) {
@@ -134,8 +135,13 @@ function ReviewForm({ review, onReload }: { review: Review; onReload: () => void
                 <p className="text-sm text-muted-foreground">
                     Approval records verification.
                     {action?.kind === "follow_up_form" && " It also unlocks the configured follow-up form."}
-                    {action?.kind === "assign_role" && " It also assigns the application role " + action.role + "."}
+                    {action?.kind === "assign_role" && (review.approvalRoleAvailable
+                        ? " It also assigns the configured application role."
+                        : " The configured role is unavailable. This approval will record verification only.")}
                 </p>
+            )}
+            {!reviewing && review.status === "approved" && review.approvalRoleAvailable === false && (
+                <p role="status" className="text-sm text-muted-foreground">Approval recorded verification only. The configured role was unavailable.</p>
             )}
             <FieldGroup>
                 {review.definition.fields.map(field => (

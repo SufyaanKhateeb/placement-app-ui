@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { useGetUserQuery } from "@/auth/queryHooks";
+import { permissions } from "@/auth/permissions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,7 +67,9 @@ export function AdminPage() {
         <section className="workspace-page max-w-3xl">
             <div className="workspace-page-heading">
                 <h1>Admin account</h1>
-                <Button size="sm" variant="outline" asChild><Link to="/admin/forms">Manage forms</Link></Button>
+                {user.permissions.includes(permissions.manageForms) && (
+                    <Button size="sm" variant="outline" asChild><Link to="/admin/forms">Manage forms</Link></Button>
+                )}
             </div>
             {connection?.linked ? (
                 <p role="status" className="text-sm text-muted-foreground">Google is connected. You can use it to sign in as an admin.</p>

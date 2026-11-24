@@ -7,6 +7,7 @@ const profileSchema = z.object({
     firstName: z.string(),
     id: z.number().int().positive(),
     lastName: z.string(),
+    permissions: z.array(z.string()).default([]),
     role: z.enum(["user", "admin"]).optional(),
     uType: z.enum(["student", "user", "admin"]).optional(),
     verified: z.boolean(),

@@ -1,11 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { axiosInstance } from "@/config/axios";
 import { adminFormsPath } from "./api";
-import type { FormDefinition, FormSummary } from "./api";
+import type { FormDefinition, FormSummary, RoleChoice } from "./api";
 
 type ApprovalSettings = Pick<FormDefinition, "approvalAction" | "requiresApprovalGrant">;
 
@@ -24,6 +23,13 @@ export function ApprovalSettingsEditor({ formID, settings, disabled, onChange }:
         retry: false,
     });
     const targets = forms.data?.filter(form => form.id !== formID && form.publishedVersion > 0 && form.requiresApprovalGrant) ?? [];
+    const roles = useQuery({
+        queryKey: ["access", "approval-roles"],
+        queryFn: async () => (await axiosInstance.get<RoleChoice[]>(adminFormsPath + "/approval-roles")).data,
+        enabled: action?.kind === "assign_role",
+        retry: false,
+    });
+    const options = roles.data ?? [];
 
     return (
         <FieldSet disabled={disabled} className="gap-3">
@@ -33,7 +39,7 @@ export function ApprovalSettingsEditor({ formID, settings, disabled, onChange }:
                     <FieldLabel htmlFor="approval-action">On approval</FieldLabel>
                     <Select value={action?.kind ?? "verification_only"} disabled={disabled} onValueChange={kind => {
                         if (kind === "follow_up_form") onChange({ approvalAction: { kind, formId: 0 } });
-                        else if (kind === "assign_role") onChange({ approvalAction: { kind, role: "" } });
+                        else if (kind === "assign_role") onChange({ approvalAction: { kind } });
                         else onChange({ approvalAction: undefined });
                     }}>
                         <SelectTrigger id="approval-action"><SelectValue /></SelectTrigger>
@@ -68,10 +74,23 @@ export function ApprovalSettingsEditor({ formID, settings, disabled, onChange }:
                 )}
                 {action?.kind === "assign_role" && (
                     <Field data-disabled={disabled}>
-                        <FieldLabel htmlFor="approval-role">Application role key</FieldLabel>
-                        <Input id="approval-role" value={action.role} disabled={disabled} maxLength={64} placeholder="verified-member"
-                            onChange={event => onChange({ approvalAction: { kind: "assign_role", role: event.target.value } })} />
-                        <FieldDescription>Start with a letter. Use letters, numbers, hyphens, or underscores. This role does not grant admin access.</FieldDescription>
+                        <FieldLabel htmlFor="approval-role">Application role</FieldLabel>
+                        <Select value={options.some(role => role.id === action.roleId) ? String(action.roleId) : ""}
+                            disabled={disabled || options.length === 0}
+                            onValueChange={value => onChange({ approvalAction: { kind: "assign_role", roleId: Number(value) } })}>
+                            <SelectTrigger id="approval-role"><SelectValue placeholder="Select an eligible role" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>{options.map(role => <SelectItem key={role.id} value={String(role.id)}>{role.name}</SelectItem>)}</SelectGroup>
+                            </SelectContent>
+                        </Select>
+                        <FieldDescription>
+                            {roles.isPending ? "Loading roles…" : roles.isError ? "Could not load approval roles." :
+                                options.length === 0 ? "A Role Manager can make a custom role eligible for approval." :
+                                action.role && !action.roleId ? "This version uses a legacy role key. Select a role when editing the draft." :
+                                action.roleId && !options.some(role => role.id === action.roleId) ?
+                                    "The saved role is unavailable. Choose an eligible role before saving." :
+                                    "Only roles eligible for form approval are listed."}
+                        </FieldDescription>
                     </Field>
                 )}
                 <Field orientation="horizontal" data-disabled={disabled}>

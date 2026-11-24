@@ -1,12 +1,15 @@
 import { ArrowRight, ClipboardList } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/auth/auth-store";
+import { permissions } from "@/auth/permissions";
 import { useGetUserQuery } from "@/auth/queryHooks";
 import { Button } from "@/components/ui/button";
 
 export default function Root() {
     const { data: user, isPending } = useGetUserQuery({ queryKey: ["getUser"] });
     const signingIn = useAuthStore(store => store.isAuthenticated);
+    const managesForms = user?.permissions.includes(permissions.manageForms);
+    const browsesForms = user?.permissions.includes(permissions.browseForms);
 
     return (
         <section className="workspace-page">
@@ -17,17 +20,19 @@ export default function Root() {
                 <div className="flex flex-col gap-2">
                     <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Training &amp; Placements</h1>
                     <p className="text-sm text-muted-foreground">
-                        {user?.role === "admin" ? "Manage drafts and publish forms for users." : "Find forms published for you."}
+                        {managesForms ? "Manage drafts and publish forms for users." : "Find forms published for you."}
                     </p>
                 </div>
                 {!isPending && (user || !signingIn) && (
                     <div className="flex flex-wrap gap-2">
                         {user ? (
                             <>
-                                {user.role === "admin" && <Button asChild><Link to="/admin/forms">Manage forms</Link></Button>}
-                                <Button variant={user.role === "admin" ? "outline" : "default"} asChild>
-                                    <Link to="/forms">Browse forms</Link>
-                                </Button>
+                                {managesForms && <Button asChild><Link to="/admin/forms">Manage forms</Link></Button>}
+                                {browsesForms && (
+                                    <Button variant={managesForms ? "outline" : "default"} asChild>
+                                        <Link to="/forms">Browse forms</Link>
+                                    </Button>
+                                )}
                             </>
                         ) : (
                             <>

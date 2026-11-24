@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ChevronLeft, CircleCheck, Eye, FileText, Pencil, Plus } from "lucide-react";
-import type { PropsWithChildren } from "react";
-import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
-import { useGetUserQuery } from "@/auth/queryHooks";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { PermissionGuard } from "@/auth/permission-guard";
+import { permissions } from "@/auth/permissions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,26 +15,8 @@ import { FormPreview } from "./form-preview";
 import { BuilderWorkspace } from "./builder-workspace";
 
 
-export function AdminFormsGuard({ children }: PropsWithChildren) {
-    const { data: user, isPending } = useGetUserQuery({ queryKey: ["getUser"] });
-    if (isPending) return <p role="status" className="px-6 py-8">Checking your session…</p>;
-    if (!user) return <Navigate to="/admin/login" replace />;
-    if (user.role !== "admin") {
-        return (
-            <section className="mx-auto flex w-full max-w-lg flex-col items-start gap-4 px-6 py-10">
-                <h1 className="text-xl font-semibold">Admin access required</h1>
-                <div className="flex flex-wrap gap-2">
-                    <Button asChild><Link to="/forms">Browse forms</Link></Button>
-                    <Button variant="outline" asChild><Link to="/admin/login">Admin sign-in</Link></Button>
-                </div>
-            </section>
-        );
-    }
-    return children;
-}
-
 export function AdminFormsPage() {
-    return <AdminFormsGuard><AdminFormsList /></AdminFormsGuard>;
+    return <PermissionGuard permission={permissions.manageForms}><AdminFormsList /></PermissionGuard>;
 }
 
 function AdminFormsList() {
@@ -113,7 +95,7 @@ function AdminFormsList() {
 
 export function FormEditorPage() {
     const { id = "" } = useParams();
-    return <AdminFormsGuard><LoadEditor key={id} id={id} /></AdminFormsGuard>;
+    return <PermissionGuard permission={permissions.manageForms}><LoadEditor key={id} id={id} /></PermissionGuard>;
 }
 
 function LoadEditor({ id }: { id: string }) {
