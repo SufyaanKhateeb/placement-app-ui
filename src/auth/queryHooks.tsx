@@ -1,30 +1,30 @@
 import { axiosInstance } from "@/config/axios";
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
+import { z } from "zod";
 
-type User = {
-    email: string;
-    firstName: string;
-    id: number;
-    lastName: string;
-    role: "user" | "admin";
-    verified: boolean;
-};
+const profileSchema = z.object({
+    email: z.string(),
+    firstName: z.string(),
+    id: z.number().int().positive(),
+    lastName: z.string(),
+    role: z.enum(["user", "admin"]).optional(),
+    uType: z.enum(["student", "user", "admin"]).optional(),
+    verified: z.boolean(),
+}).transform(({ role, uType, ...profile }) => ({
+    ...profile,
+    role: role ?? (uType === "admin" ? "admin" as const : "user" as const),
+}));
 
-type UserResponse = Omit<User, "role"> & {
-    role?: User["role"];
-    uType?: "student" | User["role"];
-};
+type User = z.output<typeof profileSchema>;
 
 async function getUser(): Promise<User> {
-    try {
-        await axiosInstance.post("/refresh", {});
-        const res = await axiosInstance.get<UserResponse>("/user");
-        const { role, uType, ...profile } = res.data;
-        return { ...profile, role: role ?? (uType === "admin" ? "admin" : "user") };
-    } catch (error) {
-        console.log(error);
-        throw new Error("Not authorized. Please login or register");
+    await axiosInstance.post("/refresh", {});
+    const response = await axiosInstance.get<unknown>("/user");
+    const profile = profileSchema.safeParse(response.data);
+    if (!profile.success) {
+        throw new Error("The session did not return a valid user profile.");
     }
+    return profile.data;
 }
 
 export const useGetUserQuery = (customOptions: UseQueryOptions<User, Error>) =>
