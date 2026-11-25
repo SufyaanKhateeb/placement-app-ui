@@ -19,7 +19,7 @@ export type Permission = {
 
 export type LegacyKey = { key: string; roleId: number | null };
 export type Catalog = { roles: Role[]; permissions: Permission[]; legacyKeys: LegacyKey[] };
-export type Account = { type: "admin" | "user"; id: number; name: string; email: string };
+export type Account = { type: "admin" | "user"; id: number; name: string; email: string; admin: boolean };
 export type Assignment = { roleId: number; name: string; submissionId?: number; active: boolean; revoked: boolean };
 
 export type AuditEntry = {
@@ -32,6 +32,7 @@ export type AuditEntry = {
     detail: {
         accountType?: Account["type"];
         accountId?: number;
+        email?: string;
         roleId?: number;
         roleKey?: string;
         submissionId?: number;

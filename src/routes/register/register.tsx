@@ -13,6 +13,8 @@ import z from "zod";
 import { useRegisterMutation } from "./queryHooks";
 import { setIsAuthenticated } from "@/auth/auth-actions";
 import { userSignInDestination } from "@/auth/sign-in-destination";
+import { axiosInstance } from "@/config/axios";
+import { requestError } from "@/routes/forms/api";
 
 export function RegisterPage() {
     const location = useLocation();
@@ -49,9 +51,11 @@ type RegisterForm = z.infer<typeof RegisterFormSchema>;
 
 type UserAuthFormProps = React.HTMLAttributes<HTMLDivElement> & {
     fromUrl?: string;
+    invitationEmail?: string;
+    onInvitedAccountCreated?: () => void;
 };
 
-function RegisterForm({ className, fromUrl, ...props }: UserAuthFormProps) {
+export function RegisterForm({ className, fromUrl, invitationEmail, onInvitedAccountCreated, ...props }: UserAuthFormProps) {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
@@ -60,10 +64,20 @@ function RegisterForm({ className, fromUrl, ...props }: UserAuthFormProps) {
         isError,
         error: registerError,
     } = useRegisterMutation({
+        ...(invitationEmail && {
+            mutationFn: async ({ firstName, lastName, password }) => {
+                try {
+                    await axiosInstance.post("/auth/admin-invitation/register", { firstName, lastName, password });
+                } catch (error) {
+                    throw new Error(requestError(error, "Could not create the invited account."));
+                }
+            },
+        }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["getUser"] });
             setIsAuthenticated(true);
-            navigate(fromUrl || "/forms", { replace: true });
+            if (onInvitedAccountCreated) onInvitedAccountCreated();
+            else navigate(fromUrl || "/forms", { replace: true });
         },
     });
 
@@ -75,14 +89,14 @@ function RegisterForm({ className, fromUrl, ...props }: UserAuthFormProps) {
         defaultValues: {
             firstName: "",
             lastName: "",
-            email: "",
+            email: invitationEmail ?? "",
             password: "",
         },
         resolver: zodResolver(RegisterFormSchema),
     });
 
     const onSubmit: SubmitHandler<RegisterForm> = async (data) => {
-        await mutateAsync(data);
+        await mutateAsync(data).catch(() => undefined);
     };
 
     return (
@@ -127,6 +141,7 @@ function RegisterForm({ className, fromUrl, ...props }: UserAuthFormProps) {
                             autoCapitalize="none"
                             autoComplete="email"
                             autoCorrect="off"
+                            readOnly={Boolean(invitationEmail)}
                             required
                         />
                         {errors.email?.message && <label className="text-sm text-red-500">{errors.email?.message}</label>}

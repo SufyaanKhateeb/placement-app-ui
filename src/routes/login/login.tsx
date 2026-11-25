@@ -42,7 +42,9 @@ export function LoginPage({ admin = false }: { admin?: boolean }) {
     const from = admin ? "/admin" : userSignInDestination(location.search);
     const registerSearch = new URLSearchParams({ from }).toString();
     const providerError = params.get("error");
-    const googleError = providerError === "google_admin_unlinked"
+    const googleError = providerError === "google_invitation_required"
+        ? "Open your admin invitation email to finish setting up your account."
+        : providerError === "google_admin_unlinked"
         ? "Sign in with your admin password first to connect Google."
         : providerError === "google_admin_session_expired"
             ? "Your admin session expired. Sign in again to connect Google."
