@@ -87,7 +87,7 @@ function PublishedFormContent({ id }: { id: string }) {
     const queryClient = useQueryClient();
     const path = publishedFormsPath + "/" + id;
     const submissionPath = path + "/submission";
-    const isUser = user?.role === "user" && user.permissions.includes(permissions.ownSubmissions);
+    const isUser = user?.accountType === "user" && user.permissions.includes(permissions.ownSubmissions);
     const submissionKey = ["publishedForms", id, "submission", user?.id];
     const form = useQuery({
         queryKey: ["publishedForms", id, user?.role, user?.id, user?.permissions.includes(permissions.browseRestricted)],

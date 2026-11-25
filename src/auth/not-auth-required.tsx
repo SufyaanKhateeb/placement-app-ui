@@ -6,6 +6,7 @@ import { userSignInDestination } from "./sign-in-destination";
 export default function NotAuthRequired({ children }: PropsWithChildren) {
     const { data: user } = useGetUserQuery({ queryKey: ["getUser"] });
     const { search } = useLocation();
-    if (user) return <Navigate to={userSignInDestination(search)} replace />;
+    const destination = userSignInDestination(search);
+    if (user && destination !== "/admin/invitation") return <Navigate to={destination} replace />;
     return children;
 }

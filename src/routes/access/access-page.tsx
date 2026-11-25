@@ -2,6 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { useState } from "react";
 import { PermissionGuard } from "@/auth/permission-guard";
 import { permissions } from "@/auth/permissions";
+import { useGetUserQuery } from "@/auth/queryHooks";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ export function AccessPage() {
 }
 
 function AccessWorkspace() {
+    const { data: user } = useGetUserQuery({ queryKey: ["getUser"] });
     const catalog = useQuery({
         queryKey: [...accessKey, "catalog"],
         queryFn: () => readAccess<Catalog>(),
@@ -32,9 +34,10 @@ function AccessWorkspace() {
             {catalog.isError && <AccessError error={catalog.error} fallback="Could not load access settings." />}
             {catalog.isSuccess && (
                 <>
+                    {user?.permissions.includes(permissions.inviteAdmins) && <InviteAdminPanel />}
                     <div className="grid items-start gap-5 xl:grid-cols-2">
                         <RolesPanel catalog={catalog.data} />
-                        <AccountsPanel roles={catalog.data.roles} />
+                        <AccountsPanel roles={catalog.data.roles} canPromote={Boolean(user?.permissions.includes(permissions.promoteAdmins))} />
                     </div>
                     {catalog.data.legacyKeys.length > 0 && <LegacyApprovalPanel catalog={catalog.data} />}
                     <AuditPanel roles={catalog.data.roles} permissions={catalog.data.permissions} />
@@ -178,20 +181,66 @@ function RoleEditor({ role, permissions, onClose }: { role?: Role; permissions: 
     );
 }
 
-function AccountsPanel({ roles }: { roles: Role[] }) {
+function InviteAdminPanel() {
+    const [email, setEmail] = useState("");
+    const invite = useAccessChange((address: string) =>
+        axiosInstance.post(accessPath + "/invitations", { email: address }));
+
+    return (
+        <section className={panel} aria-labelledby="invite-admin-title">
+            <h2 id="invite-admin-title" className="text-lg font-semibold">Invite an admin</h2>
+            <form onSubmit={event => { event.preventDefault(); invite.mutate(email.trim()); }}>
+                <Field>
+                    <FieldLabel htmlFor="admin-invite-email">Email address</FieldLabel>
+                    <div className="flex flex-wrap items-start gap-2">
+                        <Input className="min-w-48 flex-1" id="admin-invite-email" type="email" required maxLength={254}
+                            value={email} onChange={event => { setEmail(event.target.value); invite.reset(); }} disabled={invite.isPending} />
+                        <Button type="submit" disabled={invite.isPending}>{invite.isSuccess ? "Resend invitation" : "Send invitation"}</Button>
+                    </div>
+                    <FieldDescription>The invitation expires after 24 hours. Resending replaces the previous link.</FieldDescription>
+                </Field>
+            </form>
+            {invite.isSuccess && <p role="status" className="text-sm">Invitation sent to {email.trim()}.</p>}
+            {invite.isError && <AccessError error={invite.error} fallback="Could not send the invitation." />}
+        </section>
+    );
+}
+
+function PromoteAccount({ account }: { account: Account }) {
+    const [confirming, setConfirming] = useState(false);
+    const promote = useAccessChange(() => axiosInstance.post(accessPath + "/accounts/user/" + account.id + "/promote", { email: account.email }));
+
+    if (promote.isSuccess) return <p role="status" className="text-sm">Admin access granted. The account holder can sign in as an admin.</p>;
+    if (account.admin) return null;
+    if (!confirming) return <div><Button variant="outline" onClick={() => setConfirming(true)}>Promote to admin</Button></div>;
+
+    return (
+        <div className="space-y-3 rounded-md border p-4">
+            <p className="text-sm">Grant admin access to {account.name || account.email}, account #{account.id} ({account.email})?</p>
+            <div className="flex flex-wrap gap-2">
+                <Button disabled={promote.isPending} onClick={() => promote.mutate(undefined)}>Confirm promotion</Button>
+                <Button variant="outline" disabled={promote.isPending} onClick={() => { setConfirming(false); promote.reset(); }}>Cancel</Button>
+            </div>
+            {promote.isError && <AccessError error={promote.error} fallback="Could not promote the account." />}
+        </div>
+    );
+}
+
+function AccountsPanel({ roles, canPromote }: { roles: Role[]; canPromote: boolean }) {
     const [input, setInput] = useState("");
     const [search, setSearch] = useState("");
-    const [selected, setSelected] = useState<Account>();
+    const [selectedKey, setSelectedKey] = useState("");
     const accounts = useQuery({
         queryKey: [...accessKey, "accounts", search],
         queryFn: () => readAccess<Account[]>("/accounts", { q: search }),
     });
     const matches = accounts.data ?? [];
+    const selected = matches.find(account => accountKey(account) === selectedKey);
 
     return (
         <section className={panel} aria-labelledby="access-accounts-title">
             <h2 id="access-accounts-title" className="text-lg font-semibold">Account assignments</h2>
-            <form onSubmit={event => { event.preventDefault(); setSearch(input.trim()); setSelected(undefined); }}>
+            <form onSubmit={event => { event.preventDefault(); setSearch(input.trim()); setSelectedKey(""); }}>
                 <FieldGroup>
                     <Field>
                         <FieldLabel htmlFor="account-search">Find by name or email</FieldLabel>
@@ -208,13 +257,13 @@ function AccountsPanel({ roles }: { roles: Role[] }) {
             {matches.length > 0 && (
                 <Field>
                     <FieldLabel htmlFor="account-selection">Account</FieldLabel>
-                    <Select value={selected ? accountKey(selected) : ""} onValueChange={value => setSelected(matches.find(account => accountKey(account) === value))}>
+                    <Select value={selectedKey} onValueChange={setSelectedKey}>
                         <SelectTrigger id="account-selection"><SelectValue placeholder="Select an account" /></SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
                                 {matches.map(account => (
                                     <SelectItem key={accountKey(account)} value={accountKey(account)}>
-                                        {account.name || account.email} · {account.email} · {account.type === "admin" ? "Admin" : "Member account"}
+                                        {account.name || account.email} · {account.email} · {account.admin || account.type === "admin" ? "Admin" : "Member account"}
                                     </SelectItem>
                                 ))}
                             </SelectGroup>
@@ -223,7 +272,12 @@ function AccountsPanel({ roles }: { roles: Role[] }) {
                     {matches.length === 40 && <FieldDescription>Showing the first 40 accounts. Search to narrow the list.</FieldDescription>}
                 </Field>
             )}
-            {selected && <AccountRoles key={accountKey(selected)} account={selected} roles={roles} />}
+            {selected && (
+                <div className="space-y-4" key={accountKey(selected)}>
+                    {canPromote && selected.type === "user" && <PromoteAccount account={selected} />}
+                    <AccountRoles account={selected} roles={roles} />
+                </div>
+            )}
         </section>
     );
 }
@@ -242,7 +296,7 @@ function AccountRoles({ account, roles }: { account: Account; roles: Role[] }) {
     const change = useAccessChange(async ({ method, target }: { method: "put" | "delete"; target: string }) =>
         axiosInstance.request({ method, url: accessPath + path + target }), () => setSelectedRole(""));
     const available = roles.filter(role =>
-        (role.key !== "role-manager" || account.type === "admin") &&
+        (role.key !== "role-manager" || account.admin || account.type === "admin") &&
             !assignments.data?.some(item => item.roleId === role.id && !item.submissionId));
     const canAssign = available.some(role => String(role.id) === selectedRole);
 
@@ -336,6 +390,9 @@ const auditActions: Record<string, string> = {
     "role.created": "Created role",
     "role.edited": "Edited role",
     "role.bootstrapped": "Established the first Role Manager",
+    "admin.invited": "Issued admin invitation",
+    "admin.invitation_accepted": "Admin invitation accepted",
+    "admin.promoted": "Promoted account to admin",
     "approval.granted": "Granted role by approval",
     "approval.revoked": "Revoked approval grant",
     "approval.legacy_mapped": "Mapped legacy approval key",
@@ -370,7 +427,7 @@ function AuditPanel({ roles, permissions }: { roles: Role[]; permissions: Permis
                         <li key={entry.id} className="flex flex-col gap-1 py-3">
                             <p className="font-medium">{auditActions[entry.action] ?? entry.action}{roleName && " · " + roleName}</p>
                             <p className="text-sm text-muted-foreground">
-                                {[actor, target, source].filter(Boolean).join(" · ")} · <time dateTime={entry.occurredAt}>{new Date(entry.occurredAt).toLocaleString()}</time>
+                                {[actor, target, detail.email, source].filter(Boolean).join(" · ")} · <time dateTime={entry.occurredAt}>{new Date(entry.occurredAt).toLocaleString()}</time>
                             </p>
                             {detail.before && <p className="text-sm text-muted-foreground">Previous · {describe(detail.before)}</p>}
                             {detail.after && <p className="text-sm text-muted-foreground">Saved · {describe(detail.after)}</p>}

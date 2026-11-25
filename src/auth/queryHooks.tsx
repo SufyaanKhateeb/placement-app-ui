@@ -9,11 +9,13 @@ const profileSchema = z.object({
     lastName: z.string(),
     permissions: z.array(z.string()).default([]),
     role: z.enum(["user", "admin"]).optional(),
+    accountType: z.enum(["user", "admin"]).optional(),
     uType: z.enum(["student", "user", "admin"]).optional(),
     verified: z.boolean(),
-}).transform(({ role, uType, ...profile }) => ({
+}).transform(({ role, accountType, uType, ...profile }) => ({
     ...profile,
     role: role ?? (uType === "admin" ? "admin" as const : "user" as const),
+    accountType: accountType ?? role ?? (uType === "admin" ? "admin" as const : "user" as const),
 }));
 
 type User = z.output<typeof profileSchema>;

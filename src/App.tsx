@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LoginPage } from "./routes/login/login";
 import { AdminPage } from "./routes/login/admin";
 import { AccessPage } from "./routes/access/access-page";
+import { AdminInvitationPage } from "./routes/access/admin-invitation";
 import { AdminSubmissionsPage, AdminSubmissionPage } from "./routes/forms/admin-submissions";
 import { AdminFormsPage, FormEditorPage } from "./routes/forms/admin-forms";
 import { PublishedFormsPage, PublishedFormPage } from "./routes/forms/published";
@@ -75,6 +76,7 @@ const router = createBrowserRouter([
                     { path: "admin/submissions", element: <AdminSubmissionsPage /> },
                     { path: "admin/submissions/:id", element: <AdminSubmissionPage /> },
                     { path: "admin/access", element: <AccessPage /> },
+                    { path: "admin/invitation", element: <AdminInvitationPage /> },
                     {
                         path: "forms",
                         element: authenticatedRequired(<PermissionGuard permission={permissions.browseForms}><PublishedFormsPage /></PermissionGuard>),
