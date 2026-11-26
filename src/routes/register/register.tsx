@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { EmailVerification, type PasswordAuthResult } from "@/auth/email-verification";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +60,14 @@ type UserAuthFormProps = React.HTMLAttributes<HTMLDivElement> & {
 export function RegisterForm({ className, fromUrl, invitationEmail, onInvitedAccountCreated, ...props }: UserAuthFormProps) {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
+    const [verification, setVerification] = useState<PasswordAuthResult>();
+
+    function completeRegistration() {
+        queryClient.invalidateQueries({ queryKey: ["getUser"] });
+        setIsAuthenticated(true);
+        if (onInvitedAccountCreated) onInvitedAccountCreated();
+        else navigate(fromUrl || "/forms", { replace: true });
+    }
 
     const {
         mutateAsync,
@@ -68,22 +78,25 @@ export function RegisterForm({ className, fromUrl, invitationEmail, onInvitedAcc
             mutationFn: async ({ firstName, lastName, password }) => {
                 try {
                     await axiosInstance.post("/auth/admin-invitation/register", { firstName, lastName, password });
+                    return null;
                 } catch (error) {
                     throw new Error(requestError(error, "Could not create the invited account."));
                 }
             },
         }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["getUser"] });
-            setIsAuthenticated(true);
-            if (onInvitedAccountCreated) onInvitedAccountCreated();
-            else navigate(fromUrl || "/forms", { replace: true });
+        onSuccess: result => {
+            if (result?.verificationRequired) {
+                resetField("password");
+                setVerification(result);
+            }
+            else completeRegistration();
         },
     });
 
     const {
         register,
         handleSubmit,
+        resetField,
         formState: { errors, isSubmitting },
     } = useForm<RegisterForm>({
         defaultValues: {
@@ -98,6 +111,11 @@ export function RegisterForm({ className, fromUrl, invitationEmail, onInvitedAcc
     const onSubmit: SubmitHandler<RegisterForm> = async (data) => {
         await mutateAsync(data).catch(() => undefined);
     };
+
+    if (verification) {
+        return <EmailVerification deliveryError={verification.error} onComplete={completeRegistration}
+            onCancel={() => setVerification(undefined)} />;
+    }
 
     return (
         <div className={cn("grid gap-6", className)} {...props}>

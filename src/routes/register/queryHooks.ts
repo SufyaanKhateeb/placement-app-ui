@@ -1,3 +1,4 @@
+import type { PasswordAuthResult } from "@/auth/email-verification";
 import { axiosInstance } from "@/config/axios";
 import { useMutation, UseMutationOptions } from "@tanstack/react-query";
 import axios from "axios";
@@ -11,7 +12,7 @@ type registerUserDto = {
 
 async function registerUser(user: registerUserDto) {
     try {
-        await axiosInstance.post("/register", user);
+        return (await axiosInstance.post<PasswordAuthResult | null>("/register", user)).data;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response?.data) {
             if ((error.response.data.error as string).startsWith("invalid payload")) {
@@ -29,7 +30,7 @@ async function registerUser(user: registerUserDto) {
     }
 }
 
-export const useRegisterMutation = (customOptions: UseMutationOptions<void, Error, registerUserDto, unknown> = {}) => useMutation({
+export const useRegisterMutation = (customOptions: UseMutationOptions<PasswordAuthResult | null, Error, registerUserDto, unknown> = {}) => useMutation({
     mutationFn: registerUser,
     ...customOptions,
 })

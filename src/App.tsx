@@ -5,7 +5,7 @@ import Layout from "./layout/main-layout";
 import Root from "./routes/root";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LoginPage } from "./routes/login/login";
-import { AdminPage } from "./routes/login/admin";
+import { AccountPage } from "./routes/login/account";
 import { AccessPage } from "./routes/access/access-page";
 import { AdminInvitationPage } from "./routes/access/admin-invitation";
 import { AdminSubmissionsPage, AdminSubmissionPage } from "./routes/forms/admin-submissions";
@@ -59,7 +59,11 @@ const router = createBrowserRouter([
                     },
                     {
                         path: "admin",
-                        element: <AdminPage />,
+                        element: <AccountPage admin />,
+                    },
+                    {
+                        path: "account",
+                        element: <AccountPage />,
                     },
                     {
                         path: "register",

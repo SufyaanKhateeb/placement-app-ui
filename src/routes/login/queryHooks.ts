@@ -1,3 +1,4 @@
+import type { PasswordAuthResult } from "@/auth/email-verification";
 import { axiosInstance } from "@/config/axios";
 import axios from "axios";
 import { useMutation, UseMutationOptions } from "@tanstack/react-query";
@@ -9,7 +10,7 @@ type loginUserDto = {
 
 const loginUser = async (user: loginUserDto, admin: boolean) => {
     try {
-        await axiosInstance.post(admin ? "/login-admin" : "/login", user);
+        return (await axiosInstance.post<PasswordAuthResult | null>(admin ? "/login-admin" : "/login", user)).data;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response?.data) {
             if ((error.response.data.error as string).startsWith("invalid payload")) {
@@ -27,7 +28,7 @@ const loginUser = async (user: loginUserDto, admin: boolean) => {
     }
 };
 
-export const useLoginMutation = (customOptions: UseMutationOptions<void, Error, loginUserDto, unknown> = {}, admin = false) =>
+export const useLoginMutation = (customOptions: UseMutationOptions<PasswordAuthResult | null, Error, loginUserDto, unknown> = {}, admin = false) =>
     useMutation({
         mutationFn: user => loginUser(user, admin),
         ...customOptions,
