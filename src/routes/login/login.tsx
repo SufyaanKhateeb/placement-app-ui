@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { EmailVerification, type PasswordAuthResult } from "@/auth/email-verification";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useLoginMutation } from "./queryHooks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -49,7 +51,7 @@ export function LoginPage({ admin = false }: { admin?: boolean }) {
         : providerError === "google_admin_session_expired"
             ? "Your admin session expired. Sign in again to connect Google."
             : providerError === "google_link_required"
-        ? "This email already belongs to an account. Sign in with your existing method."
+        ? "Sign in with your password first. After verifying your email, you can connect Google from your account settings."
         : providerError === "google_failed"
             ? "Google sign-in could not be completed. Please try again."
             : null;
@@ -101,22 +103,32 @@ type UserAuthFormProps = React.HTMLAttributes<HTMLDivElement> & {
 function LoginForm({ className, fromUrl, admin, ...props }: UserAuthFormProps) {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
+    const [verification, setVerification] = useState<PasswordAuthResult>();
+
+    function completeLogin() {
+        queryClient.invalidateQueries({ queryKey: ["getUser"] });
+        setIsAuthenticated(true);
+        navigate(fromUrl || "/forms", { replace: true });
+    }
 
     const {
         mutateAsync,
         isError,
         error: loginError,
     } = useLoginMutation({
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["getUser"] });
-            setIsAuthenticated(true);
-            navigate(fromUrl || "/forms", { replace: true });
+        onSuccess: result => {
+            if (result?.verificationRequired) {
+                resetField("password");
+                setVerification(result);
+            }
+            else completeLogin();
         },
     }, admin);
 
     const {
         register,
         handleSubmit,
+        resetField,
         formState: { errors, isSubmitting },
     } = useForm<LoginForm>({
         defaultValues: {
@@ -127,8 +139,13 @@ function LoginForm({ className, fromUrl, admin, ...props }: UserAuthFormProps) {
     });
 
     const onSubmit: SubmitHandler<LoginForm> = async (data) => {
-        await mutateAsync(data);
+        await mutateAsync(data).catch(() => undefined);
     };
+
+    if (verification) {
+        return <EmailVerification deliveryError={verification.error} onComplete={completeLogin}
+            onCancel={() => setVerification(undefined)} />;
+    }
 
     return (
         <div className={cn("grid gap-6", className)} {...props}>

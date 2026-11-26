@@ -54,9 +54,11 @@ export default function ProfileButton() {
                     {user.permissions.includes(permissions.manageForms) && (
                         <DropdownMenuItem asChild><Link to="/admin/forms">Manage forms</Link></DropdownMenuItem>
                     )}
-                    {user.role === "admin" && (
-                        <DropdownMenuItem asChild><Link to="/admin">Admin account</Link></DropdownMenuItem>
-                    )}
+                    <DropdownMenuItem asChild>
+                        <Link to={user.role === "admin" ? "/admin" : "/account"}>
+                            {user.role === "admin" ? "Admin account" : "Account"}
+                        </Link>
+                    </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
