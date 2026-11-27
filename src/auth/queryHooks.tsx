@@ -1,4 +1,5 @@
 import { axiosInstance } from "@/config/axios";
+import { isAxiosError } from "axios";
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 import { z } from "zod";
 
@@ -20,18 +21,23 @@ const profileSchema = z.object({
 
 type User = z.output<typeof profileSchema>;
 
-async function getUser(): Promise<User> {
-    await axiosInstance.post("/refresh", {});
-    const response = await axiosInstance.get<unknown>("/user");
-    const profile = profileSchema.safeParse(response.data);
-    if (!profile.success) {
-        throw new Error("The session did not return a valid user profile.");
+async function getUser(): Promise<User | null> {
+    try {
+        await axiosInstance.post("/refresh", {});
+        const response = await axiosInstance.get<unknown>("/user");
+        const profile = profileSchema.safeParse(response.data);
+        if (!profile.success) {
+            throw new Error("The session did not return a valid user profile.");
+        }
+        return profile.data;
+    } catch (error) {
+        if (isAxiosError(error) && error.response?.status === 401) return null;
+        throw error;
     }
-    return profile.data;
 }
 
-export const useGetUserQuery = (customOptions: UseQueryOptions<User, Error>) =>
-    useQuery<User, Error>({
+export const useGetUserQuery = (customOptions: UseQueryOptions<User | null, Error>) =>
+    useQuery<User | null, Error>({
         queryFn: getUser,
         enabled: false,
         retry: false,

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { EmailVerification, type PasswordAuthResult } from "@/auth/email-verification";
+import { usePendingEmailVerification } from "@/auth/use-pending-email-verification";
+import { EmailVerification } from "@/auth/email-verification";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useLoginMutation } from "./queryHooks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -103,7 +103,7 @@ type UserAuthFormProps = React.HTMLAttributes<HTMLDivElement> & {
 function LoginForm({ className, fromUrl, admin, ...props }: UserAuthFormProps) {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
-    const [verification, setVerification] = useState<PasswordAuthResult>();
+    const [verification, setVerification] = usePendingEmailVerification();
 
     function completeLogin() {
         queryClient.invalidateQueries({ queryKey: ["getUser"] });
@@ -142,7 +142,7 @@ function LoginForm({ className, fromUrl, admin, ...props }: UserAuthFormProps) {
         await mutateAsync(data).catch(() => undefined);
     };
 
-    if (verification) {
+    if (!admin && verification) {
         return <EmailVerification deliveryError={verification.error} onComplete={completeLogin}
             onCancel={() => setVerification(undefined)} />;
     }

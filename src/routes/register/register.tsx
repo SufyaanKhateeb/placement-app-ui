@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { EmailVerification, type PasswordAuthResult } from "@/auth/email-verification";
+import { usePendingEmailVerification } from "@/auth/use-pending-email-verification";
+import { EmailVerification } from "@/auth/email-verification";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,7 +60,7 @@ type UserAuthFormProps = React.HTMLAttributes<HTMLDivElement> & {
 export function RegisterForm({ className, fromUrl, invitationEmail, onInvitedAccountCreated, ...props }: UserAuthFormProps) {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
-    const [verification, setVerification] = useState<PasswordAuthResult>();
+    const [verification, setVerification] = usePendingEmailVerification();
 
     function completeRegistration() {
         queryClient.invalidateQueries({ queryKey: ["getUser"] });
@@ -112,7 +112,7 @@ export function RegisterForm({ className, fromUrl, invitationEmail, onInvitedAcc
         await mutateAsync(data).catch(() => undefined);
     };
 
-    if (verification) {
+    if (!invitationEmail && verification) {
         return <EmailVerification deliveryError={verification.error} onComplete={completeRegistration}
             onCancel={() => setVerification(undefined)} />;
     }
