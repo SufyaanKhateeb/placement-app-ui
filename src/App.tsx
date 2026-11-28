@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import { createBrowserRouter, LoaderFunctionArgs, RouterProvider } from "react-router-dom";
 import "./App.css";
 import ErrorPage from "./err-page";
@@ -12,7 +13,6 @@ import { AdminSubmissionsPage, AdminSubmissionPage } from "./routes/forms/admin-
 import { AdminFormsPage, FormEditorPage } from "./routes/forms/admin-forms";
 import { PublishedFormsPage, PublishedFormPage } from "./routes/forms/published";
 import ProtectedPage from "./routes/pages/protected-page";
-import { Toaster } from "./components/ui/toaster";
 import { RegisterPage } from "./routes/register/register";
 import Authenticated from "./auth/Authenticated";
 import AuthRequired from "./auth/auth-required";
@@ -118,7 +118,6 @@ function App() {
     return (
         <QueryClientProvider client={queryClient}>
             <RouterProvider router={router} />
-            <Toaster />
         </QueryClientProvider>
     );
 }

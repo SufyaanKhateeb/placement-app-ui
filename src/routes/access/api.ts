@@ -1,4 +1,4 @@
-import { axiosInstance } from "@/config/axios";
+import { api } from "@/config/api";
 import type { RoleChoice } from "@/routes/forms/api";
 
 export const accessPath = "/admin/access";
@@ -43,5 +43,5 @@ export type AuditEntry = {
 };
 
 export async function readAccess<T>(path = "", params?: Record<string, string | number | undefined>): Promise<T> {
-    return (await axiosInstance.get<T>(accessPath + path, { params })).data;
+    return (await api.get<T>(accessPath + path, { params })).data;
 }

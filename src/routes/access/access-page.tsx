@@ -11,7 +11,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet 
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { axiosInstance } from "@/config/axios";
+import { api } from "@/config/api";
 import { requestError } from "@/routes/forms/api";
 import { accessKey, accessPath, readAccess } from "./api";
 import type { Account, Assignment, AuditEntry, Catalog, LegacyKey, Permission, Role } from "./api";
@@ -126,8 +126,8 @@ function RoleEditor({ role, permissions, onClose }: { role?: Role; permissions: 
     const approvalSafe = selected.length > 0 && permissions.every(permission => !selected.includes(permission.key) || permission.approvalSafe);
     const save = useAccessChange<void>(async () => {
         const body = { name, key, permissions: selected, approvalEligible: eligible };
-        if (role) return axiosInstance.put(accessPath + "/roles/" + role.id, body);
-        return axiosInstance.post(accessPath + "/roles", body);
+        if (role) return api.put(accessPath + "/roles/" + role.id, body);
+        return api.post(accessPath + "/roles", body);
     }, onClose);
 
     return (
@@ -184,7 +184,7 @@ function RoleEditor({ role, permissions, onClose }: { role?: Role; permissions: 
 function InviteAdminPanel() {
     const [email, setEmail] = useState("");
     const invite = useAccessChange((address: string) =>
-        axiosInstance.post(accessPath + "/invitations", { email: address }));
+        api.post(accessPath + "/invitations", { email: address }));
 
     return (
         <section className={panel} aria-labelledby="invite-admin-title">
@@ -208,7 +208,7 @@ function InviteAdminPanel() {
 
 function PromoteAccount({ account }: { account: Account }) {
     const [confirming, setConfirming] = useState(false);
-    const promote = useAccessChange(() => axiosInstance.patch(accessPath + "/accounts/user/" + account.id, { admin: true, email: account.email }));
+    const promote = useAccessChange(() => api.patch(accessPath + "/accounts/user/" + account.id, { admin: true, email: account.email }));
 
     if (promote.isSuccess) return <p role="status" className="text-sm">Admin access granted. The account holder can sign in as an admin.</p>;
     if (account.admin) return null;
@@ -294,7 +294,7 @@ function AccountRoles({ account, roles }: { account: Account; roles: Role[] }) {
         queryFn: () => readAccess<Assignment[]>(path + "/roles"),
     });
     const change = useAccessChange(async ({ method, target }: { method: "put" | "delete"; target: string }) =>
-        axiosInstance.request({ method, url: accessPath + path + target }), () => setSelectedRole(""));
+        api.request({ method, url: accessPath + path + target }), () => setSelectedRole(""));
     const available = roles.filter(role =>
         (role.key !== "role-manager" || account.admin || account.type === "admin") &&
             !assignments.data?.some(item => item.roleId === role.id && !item.submissionId));
@@ -360,7 +360,7 @@ function LegacyApprovalPanel({ catalog }: { catalog: Catalog }) {
 function LegacyApprovalRow({ item, roles }: { item: LegacyKey; roles: Role[] }) {
     const [selected, setSelected] = useState("");
     const options = roles.filter(role => role.approvalEligible);
-    const map = useAccessChange<void>(async () => axiosInstance.put(accessPath + "/legacy-approval-roles/" + encodeURIComponent(item.key), { roleId: Number(selected) }));
+    const map = useAccessChange<void>(async () => api.put(accessPath + "/legacy-approval-roles/" + encodeURIComponent(item.key), { roleId: Number(selected) }));
     const id = "legacy-key-" + item.key;
     const role = roles.find(role => role.id === item.roleId);
     return (

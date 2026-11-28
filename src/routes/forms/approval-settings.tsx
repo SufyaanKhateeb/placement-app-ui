@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { axiosInstance } from "@/config/axios";
+import { api } from "@/config/api";
 import { adminFormsPath } from "./api";
 import type { FormDefinition, FormSummary, RoleChoice } from "./api";
 
@@ -18,14 +18,14 @@ export function ApprovalSettingsEditor({ formID, settings, disabled, onChange }:
     const needsTarget = action?.kind === "follow_up_form";
     const forms = useQuery({
         queryKey: ["adminForms"],
-        queryFn: async () => (await axiosInstance.get<FormSummary[]>(adminFormsPath)).data,
+        queryFn: async () => (await api.get<FormSummary[]>(adminFormsPath)).data,
         enabled: needsTarget,
         retry: false,
     });
     const targets = forms.data?.filter(form => form.id !== formID && form.publishedVersion > 0 && form.requiresApprovalGrant) ?? [];
     const roles = useQuery({
         queryKey: ["access", "approval-roles"],
-        queryFn: async () => (await axiosInstance.get<RoleChoice[]>(adminFormsPath + "/approval-roles")).data,
+        queryFn: async () => (await api.get<RoleChoice[]>(adminFormsPath + "/approval-roles")).data,
         enabled: action?.kind === "assign_role",
         retry: false,
     });

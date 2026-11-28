@@ -15,7 +15,7 @@ import z from "zod";
 import { useRegisterMutation } from "./queryHooks";
 import { setIsAuthenticated } from "@/auth/auth-actions";
 import { userSignInDestination } from "@/auth/sign-in-destination";
-import { axiosInstance } from "@/config/axios";
+import { api } from "@/config/api";
 import { requestError } from "@/routes/forms/api";
 
 export function RegisterPage() {
@@ -77,7 +77,7 @@ export function RegisterForm({ className, fromUrl, invitationEmail, onInvitedAcc
         ...(invitationEmail && {
             mutationFn: async ({ firstName, lastName, password }) => {
                 try {
-                    await axiosInstance.post("/auth/admin-invitation/register", { firstName, lastName, password });
+                    await api.post("/auth/admin-invitation/register", { firstName, lastName, password });
                     return null;
                 } catch (error) {
                     throw new Error(requestError(error, "Could not create the invited account."));

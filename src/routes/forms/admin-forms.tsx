@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { axiosInstance } from "@/config/axios";
+import { api } from "@/config/api";
 import { adminFormsPath, getAdminForm, isDraftConflict, requestError } from "./api";
 import type { AdminForm, FieldType, FormDefinition, FormField, FormSummary } from "./api";
 import { FormPreview } from "./form-preview";
@@ -24,11 +24,11 @@ function AdminFormsList() {
     const queryClient = useQueryClient();
     const forms = useQuery({
         queryKey: ["adminForms"],
-        queryFn: async () => (await axiosInstance.get<FormSummary[]>(adminFormsPath)).data,
+        queryFn: async () => (await api.get<FormSummary[]>(adminFormsPath)).data,
         retry: false,
     });
     const create = useMutation({
-        mutationFn: async () => (await axiosInstance.post<AdminForm>(adminFormsPath, {})).data,
+        mutationFn: async () => (await api.post<AdminForm>(adminFormsPath, {})).data,
         onSuccess: form => {
             queryClient.invalidateQueries({ queryKey: ["adminForms"] });
             navigate(adminFormsPath + "/" + form.id);
@@ -137,10 +137,10 @@ function FormEditor({ initialForm }: { initialForm: AdminForm }) {
         mutationFn: async (action: Action) => {
             const revision = saved.revision;
             if (action === "save") {
-                const response = await axiosInstance.put<{ revision: number; draft: FormDefinition }>(path + "/draft", { revision, draft });
+                const response = await api.put<{ revision: number; draft: FormDefinition }>(path + "/draft", { revision, draft });
                 return { ...saved, ...response.data };
             }
-            const response = await axiosInstance.post<AdminForm>(path + (action === "publish" ? "/versions" : "/drafts"), { revision });
+            const response = await api.post<AdminForm>(path + (action === "publish" ? "/versions" : "/drafts"), { revision });
             return response.data;
         },
         onSuccess: (form, action) => {

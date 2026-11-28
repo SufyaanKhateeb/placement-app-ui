@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { axiosInstance } from "@/config/axios";
+import { api } from "@/config/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,11 +21,11 @@ export function EmailVerification({ deliveryError, onComplete, onCancel }: {
     const [code, setCode] = useState("");
     const [delivery, setDelivery] = useState(deliveryError);
     const confirm = useMutation({
-        mutationFn: async (code: string) => axiosInstance.post("/auth/email-verifications/current/confirmations", { code }),
+        mutationFn: async (code: string) => api.post("/auth/email-verifications/current/confirmations", { code }),
         onSuccess: onComplete,
     });
     const resend = useMutation({
-        mutationFn: async () => (await axiosInstance.post<PasswordAuthResult>("/auth/email-verifications/current/deliveries", {})).data,
+        mutationFn: async () => (await api.post<PasswordAuthResult>("/auth/email-verifications/current/deliveries", {})).data,
         onSuccess: result => {
             setDelivery(result.deliveryWarning);
             setCode("");

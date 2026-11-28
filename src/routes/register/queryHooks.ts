@@ -1,7 +1,6 @@
 import type { PasswordAuthResult } from "@/auth/email-verification";
-import { axiosInstance } from "@/config/axios";
+import { api, isApiError } from "@/config/api";
 import { useMutation, UseMutationOptions } from "@tanstack/react-query";
-import axios from "axios";
 
 type registerUserDto = {
     firstName: string;
@@ -12,9 +11,9 @@ type registerUserDto = {
 
 async function registerUser(user: registerUserDto) {
     try {
-        return (await axiosInstance.post<PasswordAuthResult | null>("/users", user)).data;
+        return (await api.post<PasswordAuthResult | null>("/users", user)).data;
     } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.data) {
+        if (isApiError(error) && error.response?.data) {
             if (error.response.data.code === "invalid_request") {
                 throw new Error(error.response.data.error || "Invalid details.");
             }

@@ -1,4 +1,3 @@
-import { isAxiosError } from "axios";
 import { useMutation } from "@tanstack/react-query";
 import { useId, useState } from "react";
 import type { FormEvent } from "react";
@@ -9,7 +8,7 @@ import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { axiosInstance } from "@/config/axios";
+import { api, isApiError } from "@/config/api";
 import { adminFormsPath, requestError } from "./api";
 import type { FormAnswer, FormAnswers, FormAnswerErrors, FormDefinition, FormField, ReviewCommentPart } from "./api";
 import { ReviewFeedback } from "./review-feedback";
@@ -65,7 +64,7 @@ export function FormPreview({ definition, allowValidation = false }: {
 }) {
     const action: AnswerAction | undefined = allowValidation ? {
         run: async values => {
-            const response = await axiosInstance.post<{ valid: boolean; errors: Record<string, string> }>(
+            const response = await api.post<{ valid: boolean; errors: Record<string, string> }>(
                 adminFormsPath + "/preview", { draft: definition, values },
             );
             return response.data;
@@ -100,7 +99,7 @@ export function AnswerForm({ definition, action, initialValues = {}, feedback, r
             ));
         },
     });
-    const serverError = isAxiosError<FormAnswerErrors>(validation.error) ? validation.error.response?.data : undefined;
+    const serverError = isApiError<FormAnswerErrors>(validation.error) ? validation.error.response?.data : undefined;
     const errors = validation.data?.errors ?? serverError?.errors;
     const disabled = !action || validation.isPending;
 
@@ -134,7 +133,7 @@ export function AnswerForm({ definition, action, initialValues = {}, feedback, r
                         const describedBy = [hint && id + "-hint", needsChanges && id + "-feedback", error && id + "-error"].filter(Boolean).join(" ") || undefined;
                         const inputType = { text: "text", boolean: "text", integer: "number", numeric: "text", date: "date", timestamptz: "datetime-local" }[field.type];
                         return (
-                            <Field key={field.id} data-invalid={!!error} data-disabled={disabled}
+                            <Field key={field.id} invalid={!!error} data-invalid={!!error} data-disabled={disabled}
                                 className={needsChanges ? "rounded-lg border border-ring bg-accent/40 p-3" : undefined}>
                                 <FieldLabel htmlFor={id}>{field.label || "Untitled field"}{field.required && " (required)"}</FieldLabel>
                                 {field.type === "boolean" ? (

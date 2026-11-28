@@ -1,5 +1,5 @@
-import { axiosInstance } from "@/config/axios";
-import { isAxiosError } from "axios";
+import { isApiError, requestEffect } from "@/config/api";
+import { Effect } from "effect";
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 import { z } from "zod";
 
@@ -21,24 +21,21 @@ const profileSchema = z.object({
 
 type User = z.output<typeof profileSchema>;
 
-async function getUser(): Promise<User | null> {
-    try {
-        await axiosInstance.post("/auth/sessions/current/renewals", {});
-        const response = await axiosInstance.get<unknown>("/users/me");
-        const profile = profileSchema.safeParse(response.data);
-        if (!profile.success) {
-            throw new Error("The session did not return a valid user profile.");
-        }
-        return profile.data;
-    } catch (error) {
-        if (isAxiosError(error) && error.response?.status === 401) return null;
-        throw error;
+const readSession = Effect.gen(function* () {
+    yield* requestEffect({ method: "post", url: "/auth/sessions/current/renewals", body: {} });
+    const response = yield* requestEffect({ method: "get", url: "/users/me" });
+    const profile = profileSchema.safeParse(response.data);
+    if (!profile.success) {
+        return yield* Effect.fail(new Error("The session did not return a valid user profile."));
     }
-}
+    return profile.data;
+}).pipe(Effect.catch(error =>
+    isApiError(error) && error.response.status === 401 ? Effect.succeed(null) : Effect.fail(error),
+));
 
 export const useGetUserQuery = (customOptions: UseQueryOptions<User | null, Error>) =>
     useQuery<User | null, Error>({
-        queryFn: getUser,
+        queryFn: ({ signal }) => Effect.runPromise(readSession, { signal }),
         enabled: false,
         retry: false,
         refetchOnWindowFocus: true,

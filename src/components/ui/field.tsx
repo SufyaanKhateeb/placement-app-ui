@@ -2,12 +2,16 @@ import { useMemo } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
-import { Label } from "@/components/ui/label"
+import {
+  Field as FieldPrimitive, FieldDescription as FieldDescriptionPrimitive, FieldError as FieldErrorPrimitive,
+  FieldGroup as FieldGroupPrimitive,
+  FieldLabel as Label, FieldLegend as FieldLegendPrimitive, FieldSet as FieldSetPrimitive,
+} from "@ui-sdk/react/field"
 import { Separator } from "@/components/ui/separator"
 
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   return (
-    <fieldset
+    <FieldSetPrimitive
       data-slot="field-set"
       className={cn(
         "flex flex-col gap-6",
@@ -25,7 +29,7 @@ function FieldLegend({
   ...props
 }: React.ComponentProps<"legend"> & { variant?: "legend" | "label" }) {
   return (
-    <legend
+    <FieldLegendPrimitive
       data-slot="field-legend"
       data-variant={variant}
       className={cn(
@@ -41,7 +45,7 @@ function FieldLegend({
 
 function FieldGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <div
+    <FieldGroupPrimitive
       data-slot="field-group"
       className={cn(
         "group/field-group flex w-full flex-col gap-7 data-[slot=checkbox-group]:gap-3 [&>[data-slot=field-group]]:gap-4",
@@ -80,9 +84,9 @@ function Field({
   className,
   orientation = "vertical",
   ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof fieldVariants>) {
+}: React.ComponentProps<typeof FieldPrimitive> & VariantProps<typeof fieldVariants>) {
   return (
-    <div
+    <FieldPrimitive
       role="group"
       data-slot="field"
       data-orientation={orientation}
@@ -115,7 +119,7 @@ function FieldLabel({
       className={cn(
         "group/field-label peer/field-label flex w-fit gap-2 leading-snug group-data-[disabled=true]/field:opacity-50",
         "has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col has-[>[data-slot=field]]:rounded-md has-[>[data-slot=field]]:border [&>[data-slot=field]]:p-4",
-        "has-[[data-state=checked]]:bg-primary/5 has-[[data-state=checked]]:border-primary",
+        "has-[[data-checked]]:bg-primary/5 has-[[data-checked]]:border-primary",
         className
       )}
       {...props}
@@ -138,7 +142,7 @@ function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
 
 function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
   return (
-    <p
+    <FieldDescriptionPrimitive
       data-slot="field-description"
       className={cn(
         "text-muted-foreground text-sm font-normal leading-normal group-has-[[data-orientation=horizontal]]/field:text-balance",
@@ -217,14 +221,15 @@ function FieldError({
   }
 
   return (
-    <div
+    <FieldErrorPrimitive
+      match
       role="alert"
       data-slot="field-error"
       className={cn("text-destructive text-sm font-normal", className)}
       {...props}
     >
       {content}
-    </div>
+    </FieldErrorPrimitive>
   )
 }
 

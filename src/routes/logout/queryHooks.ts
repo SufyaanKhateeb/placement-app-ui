@@ -1,12 +1,11 @@
-import { axiosInstance } from "@/config/axios";
-import axios from "axios";
+import { api, isApiError } from "@/config/api";
 import { useMutation, UseMutationOptions } from "@tanstack/react-query";
 
 const logoutUser = async () => {
     try {
-        await axiosInstance.delete("/auth/sessions/current");
+        await api.delete("/auth/sessions/current");
     } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.data) {
+        if (isApiError(error) && error.response?.data) {
             if (error.response.status === 401) {
                 throw new Error("Action not allowed. You are not logged in.");
             }

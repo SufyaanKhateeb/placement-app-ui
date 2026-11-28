@@ -11,7 +11,6 @@ import {
     DropdownMenuContent,
     DropdownMenuGroup,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
@@ -45,7 +44,7 @@ export default function ProfileButton() {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-40">
-                <DropdownMenuLabel className="max-w-64 truncate">{user.email}</DropdownMenuLabel>
+                <div className="max-w-64 truncate px-2 py-1.5 text-sm font-semibold">{user.email}</div>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                     {user.permissions.includes(permissions.browseForms) && (
