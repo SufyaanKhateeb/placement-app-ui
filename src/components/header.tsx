@@ -1,5 +1,5 @@
 import { ClipboardList, FileText, House, Inbox, KeyRound, Shield, type LucideIcon } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/auth/auth-store";
 import { permissions } from "@/auth/permissions";
 import { useGetUserQuery } from "@/auth/queryHooks";
@@ -11,6 +11,8 @@ import { Button } from "./ui/button";
 
 export default function Header() {
     const { data: user, isPending } = useGetUserQuery({ queryKey: ["getUser"] });
+    const { pathname } = useLocation();
+    const hasSignInPanel = /^\/(?:admin\/)?login\/?$/.test(pathname);
     const signingIn = useAuthStore(store => store.isAuthenticated);
     const workspaceLinks: { to: string; label: string; end?: boolean; icon: LucideIcon }[] = [
         { to: "/", label: "Home", end: true, icon: House },
@@ -31,8 +33,8 @@ export default function Header() {
             <header className="workspace-topbar sticky top-0 z-40 border-b bg-background">
                 <div className="flex min-h-14 items-center gap-2 px-4 sm:px-6">
                     <MobileNav links={user ? workspaceLinks.slice(1) : guestLinks} />
-                    <MainNav />
-                    {!user && (
+                    <MainNav compact={Boolean(user)} />
+                    {!user && !hasSignInPanel && (
                         <nav aria-label="Main navigation" className="ml-auto hidden items-center gap-1 md:flex">
                             {guestLinks.map(({ to, label }) => (
                                 <Button key={to} size="sm" variant="ghost" asChild className="aria-[current=page]:bg-accent">

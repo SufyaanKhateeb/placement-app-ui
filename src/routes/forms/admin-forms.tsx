@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ChevronLeft, CircleCheck, Eye, FileText, Pencil, Plus } from "lucide-react";
+import { ChevronRight, CircleCheck, Eye, FileText, Pencil, Plus } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PermissionGuard } from "@/auth/permission-guard";
 import { permissions } from "@/auth/permissions";
@@ -14,6 +14,15 @@ import type { AdminForm, FieldType, FormDefinition, FormField, FormSummary } fro
 import { FormPreview } from "./form-preview";
 import { BuilderWorkspace } from "./builder-workspace";
 
+
+import { DirectoryItems, DirectoryNoResults, DirectoryToolbar } from "./directory";
+import { initialDirectoryControls } from "./directory-controls";
+
+const publicationStatuses = [
+    { value: "draft", label: "Draft" },
+    { value: "live", label: "Live" },
+    { value: "live_with_draft", label: "Live with draft" },
+];
 
 export function AdminFormsPage() {
     return <PermissionGuard permission={permissions.manageForms}><AdminFormsList /></PermissionGuard>;
@@ -35,60 +44,49 @@ function AdminFormsList() {
         },
     });
 
+    const [controls, setControls] = useState(initialDirectoryControls);
+    const query = controls.query.trim().toLowerCase();
+    const items = forms.data?.map(form => {
+        const status = form.publishedVersion > 0 ? (form.hasDraft ? "live_with_draft" : "live") : "draft";
+        return { form, status };
+    }).filter(({ form, status }) => form.title.toLowerCase().includes(query) &&
+        (controls.status === "all" || controls.status === status)) ?? [];
+
     return (
-        <section className="workspace-list-page workspace-list-admin">
-            <div className="workspace-page-heading">
-                <div>
-                    <h1>Manage forms</h1>
-                </div>
-                <Button size="sm" className="gap-2" onClick={() => create.mutate()} disabled={create.isPending}>
+        <section className="workspace-directory">
+            <header className="directory-heading">
+                <h1>Manage forms</h1>
+                <Button type="button" size="sm" className="h-8 gap-2" onClick={() => create.mutate()} disabled={create.isPending}>
                     <Plus data-icon="inline-start" aria-hidden="true" /> {create.isPending ? "Creating…" : "New form"}
                 </Button>
+            </header>
+            <DirectoryToolbar controls={controls} onChange={setControls} options={publicationStatuses} searchLabel="Search forms"
+                count={forms.data ? items.length + (items.length === 1 ? " form" : " forms") : undefined} />
+            <div className="directory-content">
+                {forms.isPending && <p role="status" className="text-sm text-muted-foreground">Loading forms…</p>}
+                {forms.isError && <Alert variant="destructive"><AlertDescription>Could not load forms.</AlertDescription></Alert>}
+                {create.isError && <Alert variant="destructive"><AlertDescription>{requestError(create.error, "Could not create form.")}</AlertDescription></Alert>}
+                {forms.data?.length === 0 && (
+                    <Empty className="mx-auto max-w-sm">
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon"><FileText aria-hidden="true" /></EmptyMedia>
+                            <EmptyTitle>No forms yet</EmptyTitle>
+                            <EmptyDescription>Create a form to start drafting.</EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
+                )}
+                {!!forms.data?.length && items.length === 0 && (
+                    <DirectoryNoResults onReset={() => setControls({ ...controls, query: "", status: "all" })} />
+                )}
+                {items.length > 0 && <DirectoryItems view={controls.view} items={items.map(({ form, status }) => ({
+                    href: adminFormsPath + "/" + form.id,
+                    title: form.title,
+                    status: <span className="submission-status">{status !== "draft" && <CircleCheck className="size-3.5 text-primary" aria-hidden="true" />}
+                        {publicationStatuses.find(option => option.value === status)?.label}</span>,
+                    version: form.publishedVersion || undefined,
+                    action: form.hasDraft ? "Edit" : "View",
+                }))} />}
             </div>
-            <div className="workspace-list-toolbar">
-                <span className="font-medium text-foreground">All forms</span>
-                {forms.data && <span className="tabular-nums">{forms.data.length}</span>}
-            </div>
-            {forms.isPending && <p role="status" className="p-4 text-sm text-muted-foreground">Loading forms…</p>}
-            {forms.isError && <Alert variant="destructive"><AlertDescription>Could not load forms.</AlertDescription></Alert>}
-            {create.isError && <Alert variant="destructive"><AlertDescription>{requestError(create.error, "Could not create form.")}</AlertDescription></Alert>}
-            {forms.data?.length === 0 && (
-                <Empty className="mx-auto mt-14 max-w-sm">
-                    <EmptyHeader>
-                        <EmptyMedia variant="icon"><FileText aria-hidden="true" /></EmptyMedia>
-                        <EmptyTitle>No forms yet</EmptyTitle>
-                        <EmptyDescription>Create a form to start drafting.</EmptyDescription>
-                    </EmptyHeader>
-                </Empty>
-            )}
-            {!!forms.data?.length && (
-                <div>
-                    <div className="workspace-list-columns" aria-hidden="true">
-                        <span>Form</span>
-                        <span>Status</span>
-                        <span className="workspace-list-version hidden md:block">Version</span>
-                    </div>
-                    <ul>
-                        {forms.data.map(form => (
-                            <li key={form.id}>
-                                <Link className="workspace-list-row" to={adminFormsPath + "/" + form.id}>
-                                    <span className="flex min-w-0 items-center gap-3">
-                                        <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                                        <span className="truncate font-medium">{form.title}</span>
-                                    </span>
-                                    <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
-                                        {form.publishedVersion > 0 && <CircleCheck className="size-3.5 text-primary" aria-hidden="true" />}
-                                        {form.publishedVersion > 0 ? (form.hasDraft ? "Live · Draft" : "Live") : "Draft"}
-                                    </span>
-                                    <span className="workspace-list-version hidden text-xs text-muted-foreground md:block">
-                                        {form.publishedVersion > 0 ? "v" + form.publishedVersion : "—"}
-                                    </span>
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
         </section>
     );
 }
@@ -191,11 +189,13 @@ function FormEditor({ initialForm }: { initialForm: AdminForm }) {
     const latestDefinition = latest?.draft ?? latest?.published;
     const showingPreview = previewing || !draft;
     return (
-        <section className="workspace-page">
-            <Link to={adminFormsPath} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-                <ChevronLeft className="h-4 w-4" /> All forms
-            </Link>
-            <div className="workspace-page-heading">
+        <section className="form-editor-page">
+            <nav className="detail-breadcrumb" aria-label="Breadcrumb">
+                <Link to={adminFormsPath}>Manage forms</Link>
+                <ChevronRight className="size-3.5" aria-hidden="true" />
+                <span aria-current="page">{draft ? "Form editor" : "Published form"}</span>
+            </nav>
+            <header className="workspace-page-heading form-editor-heading">
                 <div className="min-w-0">
                     <h1 className="break-words">{current?.title || "Untitled form"}</h1>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -230,17 +230,17 @@ function FormEditor({ initialForm }: { initialForm: AdminForm }) {
                         </Button>
                     )}
                 </div>
-            </div>
+            </header>
             {notice && (
-                <p role="status" className="flex items-center gap-2 text-sm">
+                <p role="status" className="mx-5 my-3 flex items-center gap-2 text-sm sm:mx-8">
                     <CircleCheck className="h-4 w-4 text-muted-foreground" /> {notice}
                 </p>
             )}
             {change.isError && !conflict && (
-                <Alert variant="destructive"><AlertDescription>{requestError(change.error, "Could not update the form.")}</AlertDescription></Alert>
+                <Alert variant="destructive" className="mx-5 my-3 w-auto sm:mx-8"><AlertDescription>{requestError(change.error, "Could not update the form.")}</AlertDescription></Alert>
             )}
             {conflict && (
-                <Alert variant="destructive">
+                <Alert variant="destructive" className="mx-5 my-3 w-auto sm:mx-8">
                     <AlertTitle>Another admin changed this form</AlertTitle>
                     <AlertDescription className="space-y-3">
                         <p>Your unsaved edits are still in the editor. Review the latest draft before replacing them.</p>
@@ -267,7 +267,7 @@ function FormEditor({ initialForm }: { initialForm: AdminForm }) {
                 </Alert>
             )}
             {showingPreview && current && (
-                <div className="workspace-view-enter mx-auto flex w-full max-w-2xl flex-col gap-4 rounded-xl border bg-card p-5 sm:p-8">
+                <div className="workspace-view-enter mx-auto my-6 flex w-full max-w-2xl flex-col gap-4 px-5 py-3 sm:px-8">
                     <div className="flex items-center gap-2 border-b pb-3 text-xs font-medium text-muted-foreground">
                         <Eye className="h-4 w-4" /> {draft ? "Preview · Answers aren’t saved" : "Published form"}
                     </div>
@@ -275,7 +275,7 @@ function FormEditor({ initialForm }: { initialForm: AdminForm }) {
                 </div>
             )}
             {!showingPreview && draft && (
-                <div className="workspace-view-enter">
+                <div className="workspace-view-enter form-editor-workspace">
                     <BuilderWorkspace draft={draft} formID={saved.id} selectedID={selectedID} disabled={change.isPending}
                         onSelect={setSelectedID}
                         onDetails={details => { setDraft({ ...draft, ...details }); setNotice(""); }}

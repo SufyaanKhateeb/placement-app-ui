@@ -9,8 +9,16 @@ const statusDisplay = {
     approved: { label: "Approved", icon: CircleCheck, variant: "default" },
 } as const;
 
-export function SubmissionStatusBadge({ status }: { status: SubmissionStatus }) {
+export function SubmissionStatusBadge({ status, quiet = false }: { status: SubmissionStatus; quiet?: boolean }) {
     const { label, icon: Icon, variant } = statusDisplay[status];
+    if (quiet) {
+        return (
+            <span className="submission-status" data-status={status}>
+                <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+                {label}
+            </span>
+        );
+    }
     return (
         <Badge variant={variant} className="shrink-0 gap-1.5 whitespace-nowrap">
             <Icon className="size-3" aria-hidden="true" />

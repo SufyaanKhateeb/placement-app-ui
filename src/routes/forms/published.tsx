@@ -2,10 +2,9 @@ import { useState } from "react";
 import { useGetUserQuery } from "@/auth/queryHooks";
 import { permissions } from "@/auth/permissions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowUpRight, FileText } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { api, isApiError } from "@/config/api";
@@ -14,56 +13,78 @@ import type { FormAnswerErrors, FormAnswers, FormSubmission, FormSummary, Publis
 import { AnswerForm } from "./form-preview";
 import { SubmissionStatusBadge } from "./submission-status";
 
+import { DirectoryItems, DirectoryNoResults, DirectoryToolbar } from "./directory";
+import { initialDirectoryControls, reviewStatuses } from "./directory-controls";
+
 const publishedFormsListKey = ["publishedForms", "list"];
+
+const submissionStatuses = [
+    { value: "not_submitted", label: "Not submitted" },
+    ...reviewStatuses,
+];
+
+function publishedDirectoryItem(form: FormSummary, showActions: boolean) {
+    const status = form.submissionStatus;
+    return {
+        href: publishedFormsPath + "/" + form.id,
+        title: form.title,
+        status: status && <SubmissionStatusBadge status={status} quiet />,
+        version: form.publishedVersion,
+        action: showActions ? (status === "changes_requested" ? "Revise" : status === "not_submitted" ? "Start" : "View") : undefined,
+    };
+}
 
 export function PublishedFormsPage() {
     const { data: user } = useGetUserQuery({ queryKey: ["getUser"] });
+    const [controls, setControls] = useState(initialDirectoryControls);
     const forms = useQuery({
         queryKey: [...publishedFormsListKey, user?.role, user?.id, user?.permissions.includes(permissions.browseRestricted)],
         queryFn: async () => (await api.get<FormSummary[]>(publishedFormsPath)).data,
         retry: false,
     });
+    const canFilterStatus = user?.accountType === "user" && user.permissions.includes(permissions.ownSubmissions);
+    const status = canFilterStatus ? controls.status : "all";
+    const query = controls.query.trim().toLowerCase();
+    const visible = forms.data?.filter(form => form.title.toLowerCase().includes(query) &&
+        (status === "all" || form.submissionStatus === status)) ?? [];
+    const ready = forms.data !== undefined;
+    const needsRevision = (form: FormSummary) => form.submissionStatus === "changes_requested";
+    const needsAttention = canFilterStatus && status === "all" ? visible.filter(needsRevision) : [];
+    const otherForms = needsAttention.length ? visible.filter(form => !needsRevision(form)) : visible;
 
     return (
-        <section className="workspace-list-page">
-            <div className="workspace-page-heading">
-                <div>
-                    <h1>Forms</h1>
-                </div>
+        <section className="workspace-directory">
+            <header className="directory-heading"><h1>Forms</h1></header>
+            <DirectoryToolbar controls={controls} onChange={setControls}
+                options={canFilterStatus ? submissionStatuses : []} searchLabel="Search forms"
+                count={ready ? visible.length + (visible.length === 1 ? " form" : " forms") : undefined} />
+            <div className="directory-content">
+                {forms.isPending && <p role="status" className="text-sm text-muted-foreground">Loading forms…</p>}
+                {forms.isError && <Alert variant="destructive"><AlertDescription>Could not load forms.</AlertDescription></Alert>}
+                {forms.data?.length === 0 && (
+                    <Empty className="mx-auto max-w-sm">
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon"><FileText aria-hidden="true" /></EmptyMedia>
+                            <EmptyTitle>No forms have been published</EmptyTitle>
+                        </EmptyHeader>
+                    </Empty>
+                )}
+                {!!forms.data?.length && visible.length === 0 && (
+                    <DirectoryNoResults onReset={() => setControls({ ...controls, query: "", status: "all" })} />
+                )}
+                {needsAttention.length > 0 && (
+                    <section aria-labelledby="forms-changes-requested">
+                        <h2 className="directory-group-heading" id="forms-changes-requested">Needs your attention</h2>
+                        <DirectoryItems items={needsAttention.map(form => publishedDirectoryItem(form, true))} view={controls.view} />
+                    </section>
+                )}
+                {otherForms.length > 0 && (
+                    <section aria-label={needsAttention.length ? "Other forms" : "Forms results"}>
+                        {needsAttention.length > 0 && <h2 className="directory-group-heading">Other forms</h2>}
+                        <DirectoryItems items={otherForms.map(form => publishedDirectoryItem(form, canFilterStatus))} view={controls.view} />
+                    </section>
+                )}
             </div>
-            <div className="workspace-list-toolbar">
-                <span className="font-medium text-foreground">Published forms</span>
-                {forms.data && <span className="tabular-nums">{forms.data.length}</span>}
-            </div>
-            {forms.isPending && <p role="status" className="p-4 text-sm text-muted-foreground">Loading forms…</p>}
-            {forms.isError && <Alert variant="destructive"><AlertDescription>Could not load forms.</AlertDescription></Alert>}
-            {forms.data?.length === 0 && (
-                <Empty className="mx-auto mt-14 max-w-sm">
-                    <EmptyHeader>
-                        <EmptyMedia variant="icon"><FileText aria-hidden="true" /></EmptyMedia>
-                        <EmptyTitle>No forms have been published</EmptyTitle>
-                    </EmptyHeader>
-                </Empty>
-            )}
-            {!!forms.data?.length && (
-                <ul>
-                    {forms.data.map(form => (
-                        <li key={form.id}>
-                            <Link className="workspace-list-row" to={publishedFormsPath + "/" + form.id}>
-                                <span className="flex min-w-0 items-center gap-3">
-                                    <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                                    <span className="truncate font-medium">{form.title}</span>
-                                </span>
-                                <span className="flex items-center gap-2">
-                                    {form.submissionStatus && <SubmissionStatusBadge status={form.submissionStatus} />}
-                                    <Badge variant="outline" className={form.submissionStatus ? "hidden sm:inline-flex" : undefined}>Version {form.publishedVersion}</Badge>
-                                    <ArrowUpRight className="size-4 text-muted-foreground" aria-hidden="true" />
-                                </span>
-                            </Link>
-                        </li>
-                    ))}
-                </ul>
-            )}
         </section>
     );
 }
@@ -72,7 +93,7 @@ export function PublishedFormPage() {
     const { id = "" } = useParams();
 
     return (
-        <section className="workspace-page max-w-3xl">
+        <section className="answer-page">
             <Button variant="ghost" size="sm" className="w-fit gap-2" asChild>
                 <Link to="/forms"><ArrowLeft data-icon="inline-start" aria-hidden="true" /> All forms</Link>
             </Button>
@@ -134,38 +155,40 @@ function PublishedFormContent({ id }: { id: string }) {
     }
 
     return (
-        <div className="flex flex-col gap-5 rounded-lg border bg-card p-5 sm:p-7">
-            {submission && (
-                <Alert>
-                    <AlertDescription role="status">
-                        {submission.status === "changes_requested" ? "Changes requested. Update your answers and resubmit." :
-                            submission.status === "approved" ? "Approved." : "Submitted for approval."}
-                        {" "}Form version {submission.version}.
-                    </AlertDescription>
-                </Alert>
-            )}
-            {approvedAction?.kind === "follow_up_form" && (
-                <Button variant="outline" className="w-fit" asChild>
-                    <Link to={publishedFormsPath + "/" + approvedAction.formId}>Open follow-up form</Link>
-                </Button>
-            )}
-            {submission?.grantedRole && (
-                <p className="text-sm">Application role <span className="font-medium">{submission.grantedRole.name}</span></p>
-            )}
-            {versionChanged && !submission && (
-                <Button type="button" variant="outline" className="w-fit" disabled={form.isFetching} onClick={async () => {
-                    const updated = await form.refetch();
-                    if (updated.isSuccess) setVersionChanged(false);
-                }}>
-                    Open latest version
-                </Button>
-            )}
+        <div className="answer-card">
             <AnswerForm
                 key={version + ":" + (revision ?? "new") + ":" + (submission?.status ?? "")}
                 definition={submission?.definition ?? form.data.definition}
+                publishedVersion={version}
                 initialValues={submission?.values}
                 feedback={submission?.status === "changes_requested" ? submission.changes : undefined}
                 reviewComment={submission?.status === "changes_requested" ? submission.comment : undefined}
+                notice={<>
+                    {submission && (
+                        <Alert role="status">
+                            <AlertDescription>
+                                {submission.status === "changes_requested" ? "Changes requested. Update your answers and resubmit." :
+                                    submission.status === "approved" ? "Approved." : "Submitted for approval."}
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                    {approvedAction?.kind === "follow_up_form" && (
+                        <Button variant="outline" className="w-fit" asChild>
+                            <Link to={publishedFormsPath + "/" + approvedAction.formId}>Open follow-up form</Link>
+                        </Button>
+                    )}
+                    {submission?.grantedRole && (
+                        <p className="text-sm">Application role <span className="font-medium">{submission.grantedRole.name}</span></p>
+                    )}
+                    {versionChanged && !submission && (
+                        <Button type="button" variant="outline" className="w-fit" disabled={form.isFetching} onClick={async () => {
+                            const updated = await form.refetch();
+                            if (updated.isSuccess) setVersionChanged(false);
+                        }}>
+                            Open latest version
+                        </Button>
+                    )}
+                </>}
                 action={canSubmit ? {
                     run: sendAnswers,
                     label: submission ? "Resubmit for approval" : "Submit for approval",
