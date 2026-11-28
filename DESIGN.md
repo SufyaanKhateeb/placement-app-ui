@@ -13,7 +13,7 @@ The browser inspection established which regions persisted across desktop views.
 
 ## Placement App visual system
 
-Use a compact 192px navigation rail on authenticated desktop views, with the workspace brand at the top and account and theme controls at the bottom. The content pane sits next to it with an 8px inset on the outer edges. The public layout and mobile workspace use a top bar. The mobile navigation opens in a shadcn Sheet.
+Use a compact 192px navigation rail on authenticated desktop views, with the workspace brand at the top and account and theme controls at the bottom. The content pane sits next to it with an 8px inset on the outer edges. The public layout and mobile workspace use a top bar. The mobile navigation opens in a sheet built on UI SDK Dialog.
 
 Placement App uses warm graphite, amber, and off-white. The values below are app design choices. The HSL custom properties live in `src/index.css`.
 
@@ -28,7 +28,7 @@ Placement App uses warm graphite, amber, and off-white. The values below are app
 
 Use the system font stack and a 4px spacing base. Workspace headings are 18px, row text is 14px, and metadata is 12px. A list has a 56px title and action bar, a 40px scope and count strip, and rows at least 44px tall. Align metadata to a shared column grid. Keep the form title first. The mobile admin list prioritizes title and status.
 
-Use shadcn Button, Badge, Empty, Alert, and Sheet where appropriate. Keep the primary action in the view it changes. Use semantic colors, visible focus indicators, and explicit text for draft and publication states. Keep form label and error text associated with its input.
+Use the shared components in `src/components/ui`. Build interactive controls on Vercel UI SDK and compose them with the app’s existing styles. Keep the primary action in the view it changes. Use semantic colors, visible focus indicators, and explicit text for draft and publication states. Keep form label and error text associated with its input.
 
 ## Motion
 

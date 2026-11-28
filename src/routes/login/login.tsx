@@ -16,24 +16,21 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { setIsAuthenticated } from "@/auth/auth-actions";
 import { userSignInDestination } from "@/auth/sign-in-destination";
 
-import { axiosInstance } from "@/config/axios";
-
-const fallbackAPI = "/api/v1";
+import { api, apiBaseUrl } from "@/config/api";
 
 function GoogleSignInButton({ admin }: { admin: boolean }) {
     const { data } = useQuery({
         queryKey: ["authProviders"],
-        queryFn: async () => (await axiosInstance.get<{ google: boolean }>("/auth/providers")).data,
+        queryFn: async () => (await api.get<{ google: boolean }>("/auth/providers")).data,
         retry: false,
         staleTime: 60_000,
     });
 
     if (!data?.google) return null;
 
-    const api = (axiosInstance.defaults.baseURL || fallbackAPI).replace(/\/$/, "");
     return (
         <Button variant="outline" asChild>
-            <a href={api + (admin ? "/auth/google/admin" : "/auth/google")}>Continue with Google</a>
+            <a href={apiBaseUrl + (admin ? "/auth/google/admin" : "/auth/google")}>Continue with Google</a>
         </Button>
     );
 }

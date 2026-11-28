@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useGetUserQuery } from "@/auth/queryHooks";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { axiosInstance } from "@/config/axios";
+import { api, apiBaseUrl } from "@/config/api";
 import { requestError } from "@/routes/forms/api";
 import { RegisterForm } from "@/routes/register/register";
 
@@ -23,20 +23,20 @@ function AdminInvitation({ token, search }: { token: string; search: string }) {
     const { data: user, isFetching: checkingSession } = useGetUserQuery({ queryKey: ["getUser"] });
     const { data: providers } = useQuery({
         queryKey: ["authProviders"],
-        queryFn: async () => (await axiosInstance.get<{ google: boolean }>("/auth/providers")).data,
+        queryFn: async () => (await api.get<{ google: boolean }>("/auth/providers")).data,
         retry: false,
         staleTime: 60_000,
     });
     const accept = useMutation({
-        mutationFn: () => axiosInstance.post(invitationAPI + "/accept", {}),
+        mutationFn: () => api.post(invitationAPI + "/accept", {}),
     });
 
     useEffect(() => {
         const controller = new AbortController();
         const options = { signal: controller.signal };
         const request = token
-            ? axiosInstance.post<Invitation>(invitationAPI + "/open", { token }, options)
-            : axiosInstance.get<Invitation>(invitationAPI, options);
+            ? api.post<Invitation>(invitationAPI + "/open", { token }, options)
+            : api.get<Invitation>(invitationAPI, options);
         void request.then(({ data }) => {
             if (controller.signal.aborted) return;
             if (token && window.location.hash.slice(1) === token) {
@@ -50,7 +50,6 @@ function AdminInvitation({ token, search }: { token: string; search: string }) {
     }, [token]);
 
     const providerError = new URLSearchParams(search).get("error");
-    const api = (axiosInstance.defaults.baseURL ?? "/api/v1").replace(/\/$/, "");
     const invitedAccount = user?.role === "user" && user.email.toLowerCase() === invitation?.email;
     const signIn = "/login?" + new URLSearchParams({ from: "/admin/invitation" }).toString();
 
@@ -85,7 +84,7 @@ function AdminInvitation({ token, search }: { token: string; search: string }) {
                             <>
                                 {providers?.google && (
                                     <Button variant="outline" asChild>
-                                        <a href={api + "/auth/google/invitation"} referrerPolicy="no-referrer">Continue with Google</a>
+                                        <a href={apiBaseUrl + "/auth/google/invitation"} referrerPolicy="no-referrer">Continue with Google</a>
                                     </Button>
                                 )}
                                 {invitation.enrolled ? (

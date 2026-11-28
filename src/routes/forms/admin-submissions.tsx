@@ -1,5 +1,4 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { isAxiosError } from "axios";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -12,7 +11,7 @@ import { Field, FieldGroup } from "@/components/ui/field";
 import { ReviewCommentEditor } from "./review-comment-editor";
 import { parseReviewComment } from "./review-comment";
 import { ReviewFeedback } from "./review-feedback";
-import { axiosInstance } from "@/config/axios";
+import { api, isApiError } from "@/config/api";
 import { requestError } from "./api";
 import type { FormAnswer, FormSubmission } from "./api";
 import { SubmissionStatusBadge } from "./submission-status";
@@ -33,7 +32,7 @@ function SubmissionQueue() {
     const queue = useInfiniteQuery({
         queryKey: ["adminSubmissions"],
         initialPageParam: undefined as number | undefined,
-        queryFn: async ({ pageParam }) => (await axiosInstance.get<{ items: ReviewItem[]; nextBefore?: number }>(
+        queryFn: async ({ pageParam }) => (await api.get<{ items: ReviewItem[]; nextBefore?: number }>(
             submissionsPath, { params: { before: pageParam } },
         )).data,
         getNextPageParam: page => page.nextBefore,
@@ -79,7 +78,7 @@ export function AdminSubmissionPage() {
 function SubmissionDetail({ id }: { id: string }) {
     const query = useQuery({
         queryKey: ["adminSubmissions", id],
-        queryFn: async () => (await axiosInstance.get<Review>(submissionsPath + "/" + id)).data,
+        queryFn: async () => (await api.get<Review>(submissionsPath + "/" + id)).data,
         retry: false,
         refetchOnWindowFocus: false,
     });
@@ -110,7 +109,7 @@ function ReviewForm({ review, onReload }: { review: Review; onReload: () => void
     const reviewing = review.status === "submitted";
     const action = review.definition.approvalAction;
     const decision = useMutation({
-        mutationFn: async (action: Decision) => (await axiosInstance.patch<Review>(submissionsPath + "/" + review.id, {
+        mutationFn: async (action: Decision) => (await api.patch<Review>(submissionsPath + "/" + review.id, {
             revision: review.revision,
             decision: action,
             comment: action === "changes_requested" ? comment : undefined,
@@ -120,7 +119,7 @@ function ReviewForm({ review, onReload }: { review: Review; onReload: () => void
             queryClient.setQueryData(["adminSubmissions", String(review.id)], result);
         },
     });
-    const stale = isAxiosError(decision.error) && decision.error.response?.status === 409;
+    const stale = isApiError(decision.error) && decision.error.response?.status === 409;
 
     return (
         <>

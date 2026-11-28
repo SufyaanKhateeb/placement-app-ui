@@ -8,8 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { axiosInstance } from "@/config/axios";
-import { isAxiosError } from "axios";
+import { api, isApiError } from "@/config/api";
 
 const errors: Record<string, string> = {
     google_failed: "Google could not be connected. Please try again.",
@@ -27,20 +26,20 @@ export function AccountPage({ admin = false }: { admin?: boolean }) {
     const { data: user, isPending } = useGetUserQuery({ queryKey: ["getUser"], enabled: true });
     const { data: providers } = useQuery({
         queryKey: ["authProviders"],
-        queryFn: async () => (await axiosInstance.get<{ google: boolean }>("/auth/providers")).data,
+        queryFn: async () => (await api.get<{ google: boolean }>("/auth/providers")).data,
         retry: false,
         staleTime: 60_000,
         enabled: Boolean(user),
     });
     const { data: connection, isError: connectionError } = useQuery({
         queryKey: ["googleConnection", connectionPath, user?.id],
-        queryFn: async () => (await axiosInstance.get<{ linked: boolean; canLink?: boolean }>(connectionPath)).data,
+        queryFn: async () => (await api.get<{ linked: boolean; canLink?: boolean }>(connectionPath)).data,
         enabled: Boolean(providers?.google && user?.role === (admin ? "admin" : "user")),
         retry: false,
     });
     const connect = useMutation({
         mutationFn: async (password: string) => {
-            const response = await axiosInstance.post<{ url: string }>(connectionPath, { password });
+            const response = await api.post<{ url: string }>(connectionPath, { password });
             return response.data.url;
         },
         onSuccess: url => window.location.assign(url),
@@ -67,7 +66,7 @@ export function AccountPage({ admin = false }: { admin?: boolean }) {
     const callbackError = errors[params.get("error") ?? ""];
     let requestError = "";
     if (connect.isError) {
-        const status = isAxiosError(connect.error) ? connect.error.response?.status : undefined;
+        const status = isApiError(connect.error) ? connect.error.response?.status : undefined;
         requestError = status === 401
             ? "Your session expired. Sign in again."
             : status === 403

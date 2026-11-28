@@ -1,5 +1,4 @@
-import { isAxiosError } from "axios";
-import { axiosInstance } from "@/config/axios";
+import { api, isApiError } from "@/config/api";
 
 export const fieldTypes = [
     { value: "text", label: "Text" },
@@ -68,18 +67,18 @@ export const adminFormsPath = "/admin/forms";
 export const publishedFormsPath = "/forms";
 
 export function requestError(error: unknown, fallback: string) {
-    if (isAxiosError<{ error?: string }>(error)) {
+    if (isApiError<{ error?: string }>(error)) {
         return error.response?.data?.error || fallback;
     }
     return fallback;
 }
 
 export function isDraftConflict(error: unknown) {
-    return isAxiosError(error) && error.response?.status === 409;
+    return isApiError(error) && error.response?.status === 409;
 }
 
 export async function getAdminForm(id: string) {
-    const response = await axiosInstance.get<AdminForm>(adminFormsPath + "/" + id);
+    const response = await api.get<AdminForm>(adminFormsPath + "/" + id);
     return response.data;
 }
 export type FormAnswer = string | number | boolean | null;

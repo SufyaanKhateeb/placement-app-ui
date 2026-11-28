@@ -1,4 +1,3 @@
-import { isAxiosError } from "axios";
 import { useState } from "react";
 import { useGetUserQuery } from "@/auth/queryHooks";
 import { permissions } from "@/auth/permissions";
@@ -9,7 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { axiosInstance } from "@/config/axios";
+import { api, isApiError } from "@/config/api";
 import { publishedFormsPath, requestError } from "./api";
 import type { FormAnswerErrors, FormAnswers, FormSubmission, FormSummary, PublishedForm } from "./api";
 import { AnswerForm } from "./form-preview";
@@ -21,7 +20,7 @@ export function PublishedFormsPage() {
     const { data: user } = useGetUserQuery({ queryKey: ["getUser"] });
     const forms = useQuery({
         queryKey: [...publishedFormsListKey, user?.role, user?.id, user?.permissions.includes(permissions.browseRestricted)],
-        queryFn: async () => (await axiosInstance.get<FormSummary[]>(publishedFormsPath)).data,
+        queryFn: async () => (await api.get<FormSummary[]>(publishedFormsPath)).data,
         retry: false,
     });
 
@@ -92,13 +91,13 @@ function PublishedFormContent({ id }: { id: string }) {
     const submissionKey = ["publishedForms", id, "submission", user?.id];
     const form = useQuery({
         queryKey: ["publishedForms", id, user?.role, user?.id, user?.permissions.includes(permissions.browseRestricted)],
-        queryFn: async () => (await axiosInstance.get<PublishedForm>(path)).data,
+        queryFn: async () => (await api.get<PublishedForm>(path)).data,
         retry: false,
         refetchOnWindowFocus: false,
     });
     const receipt = useQuery({
         queryKey: submissionKey,
-        queryFn: async () => (await axiosInstance.get<FormSubmission | null>(submissionPath)).data,
+        queryFn: async () => (await api.get<FormSubmission | null>(submissionPath)).data,
         enabled: isUser,
         retry: false,
         refetchOnWindowFocus: false,
@@ -120,12 +119,12 @@ function PublishedFormContent({ id }: { id: string }) {
         try {
             const body = { version, values, ...(revision === undefined ? {} : { revision }) };
             const response = revision === undefined
-                ? await axiosInstance.post<FormSubmission>(submissionsPath, body)
-                : await axiosInstance.put<FormSubmission>(submissionPath, body);
+                ? await api.post<FormSubmission>(submissionsPath, body)
+                : await api.put<FormSubmission>(submissionPath, body);
             queryClient.setQueryData(submissionKey, response.data);
             void queryClient.invalidateQueries({ queryKey: publishedFormsListKey });
         } catch (error) {
-            if (isAxiosError<FormAnswerErrors>(error) && error.response?.status === 409) {
+            if (isApiError<FormAnswerErrors>(error) && error.response?.status === 409) {
                 if (error.response.data.code === "version_changed") setVersionChanged(true);
                 await receipt.refetch();
                 void queryClient.invalidateQueries({ queryKey: publishedFormsListKey });

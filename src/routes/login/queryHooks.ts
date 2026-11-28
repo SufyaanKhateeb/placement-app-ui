@@ -1,6 +1,5 @@
 import type { PasswordAuthResult } from "@/auth/email-verification";
-import { axiosInstance } from "@/config/axios";
-import axios from "axios";
+import { api, isApiError } from "@/config/api";
 import { useMutation, UseMutationOptions } from "@tanstack/react-query";
 
 type loginUserDto = {
@@ -10,10 +9,10 @@ type loginUserDto = {
 
 const loginUser = async (user: loginUserDto, admin: boolean) => {
     try {
-        const response = await axiosInstance.post<PasswordAuthResult>("/auth/sessions", { ...user, mode: admin ? "admin" : "user" });
+        const response = await api.post<PasswordAuthResult>("/auth/sessions", { ...user, mode: admin ? "admin" : "user" });
         return response.status === 204 ? null : response.data;
     } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.data) {
+        if (isApiError(error) && error.response?.data) {
             if (error.response.data.code === "invalid_request") {
                 throw new Error(error.response.data.error || "Invalid details.");
             }
