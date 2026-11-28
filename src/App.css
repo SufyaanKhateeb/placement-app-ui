@@ -43,42 +43,313 @@
     @apply mt-1 text-sm text-muted-foreground;
 }
 
-.workspace-list-page {
-    @apply flex min-h-full w-full flex-col;
-}
-
-.workspace-list-page .workspace-page-heading {
-    @apply min-h-14 px-4 py-2 sm:px-6;
-}
-
-.workspace-list-toolbar {
-    @apply flex min-h-10 items-center gap-2 border-b bg-muted/40 px-4 text-xs text-muted-foreground sm:px-6;
-}
-
-.workspace-list-row, .workspace-list-columns {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.75rem;
-    align-items: center;
-    padding-inline: 1rem;
-}
-
-.workspace-list-row {
-    @apply min-h-11 border-b border-border/70 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring;
-}
-
-.workspace-list-columns {
-    @apply min-h-8 border-b text-xs text-muted-foreground;
-}
-
-.workspace-list-version {
-    min-width: 4rem;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-}
-
 .auth-panel {
     @apply mx-auto my-auto flex w-full max-w-md flex-col gap-5 rounded-xl border bg-card p-6 sm:p-8;
+}
+
+.sign-in-page {
+    @apply flex flex-1 bg-muted/35 px-4 py-8 sm:py-12;
+}
+
+.sign-in-panel {
+    @apply mx-auto my-auto flex w-full max-w-[26rem] flex-col gap-5 rounded-lg border bg-card p-5 sm:p-7;
+}
+
+.sign-in-panel [data-slot="field-separator-content"] {
+    @apply bg-card text-xs;
+}
+
+.sign-in-modes {
+    @apply grid grid-cols-2 gap-1 rounded-md border bg-muted p-1;
+}
+
+.sign-in-modes a {
+    @apply text-muted-foreground;
+}
+
+.sign-in-modes a[aria-current="page"] {
+    @apply bg-card font-semibold text-foreground shadow-sm;
+}
+
+.account-page {
+    @apply mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-6 sm:px-8 sm:py-8;
+}
+
+.account-heading {
+    @apply flex flex-wrap items-center justify-between gap-3;
+}
+
+.account-heading h1 {
+    @apply text-2xl font-semibold tracking-tight;
+}
+
+.connection-panel {
+    @apply rounded-lg border bg-card;
+}
+
+.connection-heading {
+    @apply grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 border-b p-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:p-5;
+}
+
+.connection-status {
+    @apply col-start-2 w-fit sm:col-start-3 sm:row-start-1;
+}
+
+.connection-icon {
+    @apply grid size-9 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground;
+}
+
+.connection-body {
+    @apply grid gap-3 p-4 sm:p-5;
+}
+
+.answer-page {
+    @apply mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pb-8 pt-4 sm:px-7 sm:pt-6;
+}
+
+.answer-card {
+    @apply rounded-lg border bg-card px-4 py-5 sm:px-6 sm:py-6;
+}
+
+.answer-form-header {
+    @apply flex flex-col gap-2;
+}
+
+.answer-form-header h1,
+.answer-form-header h2 {
+    @apply break-words text-xl font-semibold tracking-tight sm:text-2xl;
+}
+
+.answer-form-actions {
+    @apply flex flex-col gap-3;
+}
+
+.workspace-directory {
+    @apply mx-auto flex w-full max-w-6xl flex-col px-4 py-5 sm:px-8 sm:py-7;
+}
+
+.directory-heading {
+    @apply flex min-h-8 flex-wrap items-center justify-between gap-3 text-xl font-semibold tracking-tight;
+}
+
+.directory-toolbar {
+    @apply mt-3 flex min-h-11 flex-wrap items-center gap-2 border-b pb-2;
+}
+
+.directory-search {
+    @apply relative w-full min-w-0 sm:w-56;
+}
+
+.directory-count {
+    @apply ml-auto text-xs tabular-nums text-muted-foreground;
+}
+
+.directory-switcher {
+    @apply flex shrink-0 items-center rounded-md border bg-background p-0.5;
+}
+
+.directory-switcher button {
+    @apply size-7 p-0 text-muted-foreground;
+}
+
+.directory-switcher button[aria-pressed="true"] {
+    @apply bg-accent text-accent-foreground;
+}
+
+.directory-content {
+    @apply mt-3 grid gap-4;
+}
+
+.directory-group-heading {
+    @apply mb-1.5 text-xs font-semibold text-muted-foreground;
+}
+
+.directory-list[data-view="list"] {
+    @apply divide-y rounded-md border bg-card;
+}
+
+.directory-link {
+    @apply grid min-h-11 items-center gap-x-2 gap-y-0.5 px-2.5 py-1.5 text-sm transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-3;
+}
+
+.directory-list[data-view="list"] .directory-link {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.directory-list[data-view="list"] li:first-child .directory-link {
+    @apply rounded-t-md;
+}
+
+.directory-list[data-view="list"] li:last-child .directory-link {
+    @apply rounded-b-md;
+}
+
+.directory-name {
+    @apply col-start-1 row-start-1 flex min-w-0 items-center gap-2;
+}
+
+.directory-icon {
+    @apply flex size-6 shrink-0 items-center justify-center rounded bg-secondary text-muted-foreground;
+}
+
+.directory-status {
+    @apply col-start-1 row-start-2 min-w-0 pl-8;
+}
+
+.directory-version {
+    @apply hidden text-xs tabular-nums text-muted-foreground;
+}
+
+.directory-action {
+    @apply col-start-2 row-start-1 inline-flex items-center justify-end gap-1 text-xs font-semibold text-muted-foreground;
+}
+
+.directory-link:hover .directory-action,
+.directory-link:focus-visible .directory-action {
+    @apply text-foreground;
+}
+
+.directory-list[data-view="blocks"] {
+    @apply grid grid-cols-[repeat(auto-fill,minmax(min(100%,16rem),1fr))] gap-2.5;
+}
+
+.directory-list[data-view="blocks"] .directory-link {
+    @apply h-full min-h-24 items-start gap-y-3 rounded-md border bg-card p-3 hover:bg-muted/60;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: 1fr auto;
+}
+
+.directory-list[data-view="blocks"] .directory-status {
+    @apply col-start-1 row-start-2 self-end pl-0;
+}
+
+.directory-list[data-view="blocks"] .directory-action {
+    @apply col-start-2 row-start-2 self-end;
+}
+
+.directory-list[data-view="blocks"] .directory-version {
+    @apply col-start-2 row-start-1 block text-right;
+}
+
+.submission-status {
+    @apply inline-flex w-fit shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium text-muted-foreground;
+}
+
+.submission-status[data-status="changes_requested"] {
+    @apply text-destructive;
+}
+
+.submission-status[data-status="approved"] {
+    color: hsl(153 51% 30%);
+}
+
+.dark .submission-status[data-status="approved"] {
+    color: hsl(151 48% 66%);
+}
+
+.submission-status[data-status="submitted"] {
+    @apply text-primary;
+}
+
+.detail-breadcrumb {
+    @apply flex min-h-14 items-center gap-2 border-b px-5 text-sm text-muted-foreground sm:px-8;
+}
+
+.detail-breadcrumb a {
+    @apply shrink-0 rounded-sm hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+}
+
+.detail-breadcrumb [aria-current="page"] {
+    @apply truncate font-medium text-foreground;
+}
+
+.submission-detail, .form-editor-page {
+    @apply flex flex-1 flex-col;
+}
+
+.submission-heading {
+    @apply border-b px-5 py-5 sm:px-8 sm:py-6;
+}
+
+.submission-heading .submission-status {
+    @apply rounded-md border bg-muted/50 px-2.5 py-1.5;
+}
+
+.submission-body, .builder-layout {
+    @apply grid flex-1 content-start;
+}
+
+.form-editor-workspace {
+    @apply flex flex-1 flex-col;
+}
+
+.submission-answers {
+    @apply min-w-0 px-5 py-5 sm:px-8;
+}
+
+.submission-answer {
+    @apply grid gap-1 py-3 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] sm:gap-4;
+}
+
+.submission-review {
+    @apply flex min-w-0 flex-col gap-4 border-t bg-muted/40 px-5 py-5 sm:px-6;
+}
+
+.form-editor-heading {
+    @apply items-end px-5 py-4 sm:px-8;
+}
+
+.form-editor-heading h1 {
+    @apply text-2xl;
+}
+
+.builder-heading {
+    @apply flex min-h-14 flex-wrap items-center justify-between gap-2 border-b px-5 py-2 sm:px-8;
+}
+
+.builder-field-row {
+    @apply flex min-h-11 w-full items-center gap-3 rounded-md border-l-2 border-transparent px-2.5 py-1.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring;
+}
+
+.builder-field-row[aria-pressed="true"] {
+    @apply border-l-primary bg-accent text-accent-foreground;
+}
+
+.builder-settings {
+    @apply min-w-0 border-t bg-muted/40;
+}
+
+.builder-settings .builder-heading {
+    @apply sm:px-6;
+}
+
+@media (min-width: 640px) {
+    .directory-list[data-view="list"] .directory-link {
+        grid-template-columns: minmax(0, 1fr) 8.5rem 2rem 4.25rem;
+    }
+
+    .directory-list[data-view="list"] .directory-status {
+        @apply col-start-2 row-start-1 pl-0;
+    }
+
+    .directory-list[data-view="list"] .directory-version {
+        @apply col-start-3 row-start-1 block;
+    }
+
+    .directory-list[data-view="list"] .directory-action {
+        @apply col-start-4;
+    }
+}
+
+@media (min-width: 1024px) {
+    .submission-body, .builder-layout {
+        align-content: stretch;
+        grid-template-columns: minmax(0, 1fr) clamp(19rem, 30vw, 24rem);
+    }
+
+    .submission-review, .builder-settings {
+        @apply border-l border-t-0;
+    }
 }
 
 .workspace-view-enter {
@@ -104,15 +375,6 @@
         margin: 0.5rem 0.5rem 0.5rem 0;
         border: 1px solid hsl(var(--border));
         border-radius: 0.625rem;
-    }
-
-    .workspace-list-row, .workspace-list-columns {
-        padding-inline: 1.5rem;
-    }
-
-    .workspace-list-admin .workspace-list-row,
-    .workspace-list-admin .workspace-list-columns {
-        grid-template-columns: minmax(0, 1fr) 8rem 5rem;
     }
 }
 

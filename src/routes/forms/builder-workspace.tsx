@@ -1,5 +1,4 @@
 import { ArrowDown, ArrowUp, CalendarDays, ChevronDown, Hash, ListChecks, Plus, Settings2, TextCursorInput, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -9,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 import { fieldTypes } from "./api";
 import type { FieldType, FormDefinition, FormField } from "./api";
 import { ApprovalSettingsEditor } from "./approval-settings";
@@ -44,14 +42,12 @@ export function BuilderWorkspace({ draft, formID, selectedID, disabled, onSelect
     const selected = draft.fields[index];
 
     return (
-        <div className="grid items-start overflow-hidden rounded-xl border bg-card lg:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)]">
+        <div className="builder-layout">
             <div className="min-w-0">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 sm:px-6">
-                    <div>
-                        <h2 className="font-semibold">Fields</h2>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                            {draft.fields.length} {draft.fields.length === 1 ? "field" : "fields"}
-                        </p>
+                <div className="builder-heading">
+                    <div className="flex items-baseline gap-2">
+                        <h2 className="text-sm font-semibold">Fields</h2>
+                        <span className="text-xs tabular-nums text-muted-foreground">{draft.fields.length}</span>
                     </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -78,10 +74,9 @@ export function BuilderWorkspace({ draft, formID, selectedID, disabled, onSelect
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
-                <div className="p-3 sm:p-4">
+                <div className="px-3 py-2 sm:px-5">
                     <button type="button" disabled={disabled} aria-pressed={!selected} onClick={() => onSelect(null)}
-                        className={cn("flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                            !selected && "bg-muted")}>
+                        className="builder-field-row text-sm font-medium">
                         <Settings2 className="h-4 w-4 text-muted-foreground" /> Form details
                     </button>
                     {draft.fields.length === 0 ? (
@@ -93,23 +88,20 @@ export function BuilderWorkspace({ draft, formID, selectedID, disabled, onSelect
                             </EmptyHeader>
                         </Empty>
                     ) : (
-                        <ul className="mt-2 flex flex-col gap-1">
+                        <ul className="mt-2 divide-y border-t pt-1">
                             {draft.fields.map(field => {
                                 const Icon = fieldIcons[field.type];
                                 return (
                                     <li key={field.id}>
                                         <button type="button" disabled={disabled} aria-pressed={selectedID === field.id}
                                             onClick={() => onSelect(field.id)}
-                                            className={cn("flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                                                selectedID === field.id && "bg-muted")}>
-                                            <span className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
-                                                <Icon className="h-4 w-4" />
-                                            </span>
+                                            className="builder-field-row">
+                                            <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                                             <span className="min-w-0 flex-1">
                                                 <span className="block truncate text-sm font-medium">{field.label || "Untitled field"}</span>
                                                 <span className="block text-xs text-muted-foreground">{fieldTypes.find(type => type.value === field.type)?.label}</span>
                                             </span>
-                                            {field.required && <Badge variant="secondary">Required</Badge>}
+                                            {field.required && <span className="text-xs font-medium text-muted-foreground">Required</span>}
                                         </button>
                                     </li>
                                 );
@@ -118,9 +110,12 @@ export function BuilderWorkspace({ draft, formID, selectedID, disabled, onSelect
                     )}
                 </div>
             </div>
-            <aside aria-label="Form settings" className="min-w-0 border-t bg-muted/40 lg:border-l lg:border-t-0">
-                <div className="border-b px-5 py-4 sm:px-6">
-                    <h2 className="font-semibold">{selected ? "Field settings" : "Form details"}</h2>
+            <aside aria-label="Form settings" className="builder-settings">
+                <div className="builder-heading">
+                    <div className="min-w-0">
+                        <h2 className="text-sm font-semibold">{selected ? "Field settings" : "Form details"}</h2>
+                        {selected && <p className="truncate text-xs text-muted-foreground">{selected.label || "Untitled field"}</p>}
+                    </div>
                 </div>
                 {selected ? (
                     <FieldSet disabled={disabled} className="px-5 py-5 sm:px-6">
@@ -167,7 +162,7 @@ export function BuilderWorkspace({ draft, formID, selectedID, disabled, onSelect
                             <Button type="button" size="sm" variant="outline" disabled={index === draft.fields.length - 1} onClick={() => onMove(index, 1)} aria-label="Move field down">
                                 <ArrowDown data-icon="inline-start" aria-hidden="true" />
                             </Button>
-                            <Button type="button" size="sm" variant="destructive" className="ml-auto gap-2"
+                            <Button type="button" size="sm" variant="ghost" className="ml-auto gap-2 text-destructive hover:text-destructive"
                                 onClick={() => onRemove(selected.id)}>
                                 <Trash2 data-icon="inline-start" /> Remove field
                             </Button>

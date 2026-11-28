@@ -1,14 +1,13 @@
 import { usePendingEmailVerification } from "@/auth/use-pending-email-verification";
 import { EmailVerification } from "@/auth/email-verification";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useLoginMutation } from "./queryHooks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Loading from "@/components/ui/loading";
 import { AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { Field, FieldError, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import z from "zod";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,21 +16,27 @@ import { setIsAuthenticated } from "@/auth/auth-actions";
 import { userSignInDestination } from "@/auth/sign-in-destination";
 
 import { api, apiBaseUrl } from "@/config/api";
+import { PasswordInput } from "./password-input";
 
-function GoogleSignInButton({ admin }: { admin: boolean }) {
-    const { data } = useQuery({
+function GoogleSignIn({ admin }: { admin: boolean }) {
+    const { data, isPending, isError } = useQuery({
         queryKey: ["authProviders"],
         queryFn: async () => (await api.get<{ google: boolean }>("/auth/providers")).data,
         retry: false,
         staleTime: 60_000,
     });
 
+    if (isPending) return <p role="status" className="text-sm text-muted-foreground">Checking Google sign-in availability…</p>;
+    if (isError) return <p role="status" className="text-sm text-muted-foreground">Google sign-in is unavailable. You can sign in with email.</p>;
     if (!data?.google) return null;
 
     return (
-        <Button variant="outline" asChild>
-            <a href={apiBaseUrl + (admin ? "/auth/google/admin" : "/auth/google")}>Continue with Google</a>
-        </Button>
+        <>
+            <Button variant="outline" asChild>
+                <a href={apiBaseUrl + (admin ? "/auth/google/admin" : "/auth/google")}>Continue with Google</a>
+            </Button>
+            <FieldSeparator>or sign in with email</FieldSeparator>
+        </>
     );
 }
 
@@ -54,32 +59,28 @@ export function LoginPage({ admin = false }: { admin?: boolean }) {
             : null;
 
     return (
-        <div className="flex flex-1 px-4 py-8">
-            <section className="auth-panel">
+        <div className="sign-in-page">
+            <section className="sign-in-panel" aria-labelledby="sign-in-heading">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-2xl font-semibold tracking-tight">{admin ? "Admin sign-in" : "Welcome back"}</h1>
+                    <h1 id="sign-in-heading" className="text-2xl font-semibold tracking-tight">{admin ? "Admin sign-in" : "User sign-in"}</h1>
                     <p className="text-sm text-muted-foreground">
-                        {admin ? "Use your admin account to sign in." : "Sign in to browse published forms."}
+                        {admin ? "Manage placement forms and review submissions." : "Find placement forms and track your submissions."}
                     </p>
                 </div>
+                <nav aria-label="Sign-in type" className="sign-in-modes">
+                    <Button type="button" size="sm" variant="ghost" asChild><NavLink to="/login" end>User</NavLink></Button>
+                    <Button type="button" size="sm" variant="ghost" asChild><NavLink to="/admin/login" end>Admin</NavLink></Button>
+                </nav>
                 {googleError && (
                     <Alert variant="destructive">
                         <AlertCircle className="size-4" />
                         <AlertDescription>{googleError}</AlertDescription>
                     </Alert>
                 )}
-                <GoogleSignInButton admin={admin} />
-                <LoginForm fromUrl={from} admin={admin} />
-                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                    {admin ? (
-                        <Link to="/login" className="underline underline-offset-4">User sign-in</Link>
-                    ) : (
-                        <>
-                            <Link to={"/register?" + registerSearch} className="underline underline-offset-4">Create account</Link>
-                            <Link to="/admin/login" className="underline underline-offset-4">Admin sign-in</Link>
-                        </>
-                    )}
-                </div>
+                <LoginForm key={admin ? "admin" : "user"} fromUrl={from} admin={admin} />
+                {!admin && <Button variant="link" size="sm" className="self-start px-0" asChild>
+                    <Link to={"/register?" + registerSearch}>Create account</Link>
+                </Button>}
             </section>
         </div>
     );
@@ -92,12 +93,7 @@ const LoginFormSchema = z.object({
 
 type LoginForm = z.infer<typeof LoginFormSchema>;
 
-type UserAuthFormProps = React.HTMLAttributes<HTMLDivElement> & {
-    fromUrl?: string;
-    admin: boolean;
-};
-
-function LoginForm({ className, fromUrl, admin, ...props }: UserAuthFormProps) {
+function LoginForm({ fromUrl, admin }: { fromUrl: string; admin: boolean }) {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const [verification, setVerification] = usePendingEmailVerification();
@@ -105,7 +101,7 @@ function LoginForm({ className, fromUrl, admin, ...props }: UserAuthFormProps) {
     function completeLogin() {
         queryClient.invalidateQueries({ queryKey: ["getUser"] });
         setIsAuthenticated(true);
-        navigate(fromUrl || "/forms", { replace: true });
+        navigate(fromUrl, { replace: true });
     }
 
     const {
@@ -145,11 +141,12 @@ function LoginForm({ className, fromUrl, admin, ...props }: UserAuthFormProps) {
     }
 
     return (
-        <div className={cn("grid gap-6", className)} {...props}>
-            <form onSubmit={handleSubmit(onSubmit)}>
-                <div className="grid gap-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="email">Email</Label>
+        <div className="flex flex-col gap-5">
+            <GoogleSignIn admin={admin} />
+            <form noValidate onSubmit={handleSubmit(onSubmit)}>
+                <FieldGroup className="gap-4">
+                    <Field invalid={!!errors.email} data-invalid={!!errors.email} className="gap-2">
+                        <FieldLabel htmlFor="email" className="text-sm font-medium">Email</FieldLabel>
                         <Input
                             {...register("email")}
                             id="email"
@@ -158,34 +155,37 @@ function LoginForm({ className, fromUrl, admin, ...props }: UserAuthFormProps) {
                             autoCapitalize="none"
                             autoComplete="email"
                             autoCorrect="off"
+                            aria-invalid={!!errors.email}
+                            aria-describedby={errors.email ? "login-email-error" : undefined}
                             required
                         />
-                        {errors.email?.message && <label className="text-sm text-red-500">{errors.email?.message}</label>}
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="password">Password</Label>
-                        <Input
+                        {errors.email && <FieldError id="login-email-error">{errors.email.message}</FieldError>}
+                    </Field>
+                    <Field invalid={!!errors.password} data-invalid={!!errors.password} className="gap-2">
+                        <FieldLabel htmlFor="password" className="text-sm font-medium">Password</FieldLabel>
+                        <PasswordInput
                             {...register("password")}
                             id="password"
-                            placeholder="password"
-                            type="password"
                             autoCapitalize="none"
                             autoComplete="current-password"
                             autoCorrect="off"
+                            aria-invalid={!!errors.password}
+                            aria-describedby={errors.password ? "login-password-error" : undefined}
                             required
                         />
-                        {errors.password?.message && <label className="text-xs text-red-500">{errors.password?.message}</label>}
-                    </div>
+                        {errors.password && <FieldError id="login-password-error">{errors.password.message}</FieldError>}
+                    </Field>
                     {isError && (
                         <Alert variant="destructive">
                             <AlertCircle className="h-4 w-4" />
                             <AlertDescription>{loginError.message}</AlertDescription>
                         </Alert>
                     )}
-                    <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? <Loading /> : "Sign In with Email"}
+                    <Button type="submit" disabled={isSubmitting} className="gap-2">
+                        {isSubmitting && <Spinner data-icon="inline-start" aria-hidden="true" />}
+                        {isSubmitting ? "Signing in…" : "Sign In with Email"}
                     </Button>
-                </div>
+                </FieldGroup>
             </form>
         </div>
     );

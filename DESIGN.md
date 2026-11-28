@@ -26,9 +26,16 @@ Placement App uses warm graphite, amber, and off-white. The values below are app
 | Selected background | `36 32% 89%` | `35 13% 20%` |
 | Divider | `34 17% 86%` | `34 9% 21%` |
 
-Use the system font stack and a 4px spacing base. Workspace headings are 18px, row text is 14px, and metadata is 12px. A list has a 56px title and action bar, a 40px scope and count strip, and rows at least 44px tall. Align metadata to a shared column grid. Keep the form title first. The mobile admin list prioritizes title and status.
+Use the system font stack and a 4px spacing base. Directory titles are 20px, row text is 14px, and metadata is 12px. Forms, Manage forms, and Submissions share a toolbar with search, status filters where applicable, result count, and List and Block views. List rows are at least 44px tall, with aligned metadata on desktop and status beneath the title on mobile. Blocks show the same records and use the same active filters. Put student forms returned for changes above the other forms in the unfiltered status view.
 
 Use the shared components in `src/components/ui`. Build interactive controls on Vercel UI SDK and compose them with the app’s existing styles. Keep the primary action in the view it changes. Use semantic colors, visible focus indicators, and explicit text for draft and publication states. Keep form label and error text associated with its input.
+
+## Community references
+
+- [blocks.so login](https://blocks.so/login/login-02) and [21st.dev sign-in](https://21st.dev/@prebuiltui/components/login-form) show a compact sign-in stack with Google and email kept visually distinct. Placement App adds a visible User/Admin route switch and preserves the email option if Google availability cannot be checked.
+- [Connected Accounts preview](https://www.shadcn.io/view/settings/connected-accounts) and the [password toggle preview](https://www.shadcn.io/examples/input-password-with-toggle) inform the account status row, password reveal, and inline connection feedback.
+- [shadcn Field](https://ui.shadcn.com/docs/components/field) and [ReUI Filters](https://reui.io/docs/components/base/filters) cover form feedback and list controls. Published forms keep the title and instructions above the fields, show feedback next to its subject, and separate the submit action from the final field. Directory filters use the same toolbar in both layouts.
+- [Transitions.dev](https://transitions.dev/) provides reduced-motion and state-change examples. Use text and color for sign-in, validation, and connection progress and errors.
 
 ## Motion
 
