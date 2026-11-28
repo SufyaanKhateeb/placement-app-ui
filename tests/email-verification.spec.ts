@@ -10,25 +10,29 @@ for (const entry of ["/login", "/register"]) {
         let authenticated = false;
         await page.route("**/api/v1/**", async route => {
             const path = new URL(route.request().url()).pathname;
-            if (path === "/api/v1/refresh" && holdRefresh) {
+            if (path === "/api/v1/auth/sessions/current/renewals" && holdRefresh) {
                 signalRefresh();
                 await waiting;
             }
-            if (path === "/api/v1/refresh" || path === "/api/v1/user") {
+            if (path === "/api/v1/auth/sessions/current/renewals" || path === "/api/v1/users/me") {
                 await route.fulfill(authenticated
                     ? { json: { id: 7, firstName: "Test", lastName: "User", email: "fixture@example.invalid",
                         role: "user", permissions: ["forms.browse"], verified: false } }
                     : { status: 401, json: { error: "authentication required" } });
                 return;
             }
-            if (path === "/api/v1" + entry) {
+            if (path === (entry === "/login" ? "/api/v1/auth/sessions" : "/api/v1/users")) {
+                expect(route.request().method()).toBe("POST");
+                if (entry === "/login") expect(route.request().postDataJSON().mode).toBe("user");
                 await route.fulfill({ status: 202, json: { verificationRequired: true } });
                 return;
             }
-            if (path === "/api/v1/auth/email-verification/confirm") {
+            if (path === "/api/v1/auth/email-verifications/current/confirmations") {
                 expect(route.request().postDataJSON()).toEqual({ code: "123456" });
                 authenticated = true;
-                await route.fulfill({ status: 200, json: null });
+                await route.fulfill(entry === "/register"
+                    ? { status: 201, json: null, headers: { Location: "/api/v1/users/me" } }
+                    : { status: 204 });
                 return;
             }
             await route.fulfill({ json: path.endsWith("/providers") ? { google: false } : [] });

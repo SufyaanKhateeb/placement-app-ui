@@ -110,7 +110,7 @@ function ReviewForm({ review, onReload }: { review: Review; onReload: () => void
     const reviewing = review.status === "submitted";
     const action = review.definition.approvalAction;
     const decision = useMutation({
-        mutationFn: async (action: Decision) => (await axiosInstance.put<Review>(submissionsPath + "/" + review.id + "/review", {
+        mutationFn: async (action: Decision) => (await axiosInstance.patch<Review>(submissionsPath + "/" + review.id, {
             revision: review.revision,
             decision: action,
             comment: action === "changes_requested" ? comment : undefined,

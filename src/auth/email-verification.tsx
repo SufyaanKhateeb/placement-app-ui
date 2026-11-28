@@ -10,7 +10,7 @@ import { requestError } from "@/routes/forms/api";
 
 export type PasswordAuthResult = {
     verificationRequired?: boolean;
-    error?: string;
+    deliveryWarning?: string;
 };
 
 export function EmailVerification({ deliveryError, onComplete, onCancel }: {
@@ -21,13 +21,13 @@ export function EmailVerification({ deliveryError, onComplete, onCancel }: {
     const [code, setCode] = useState("");
     const [delivery, setDelivery] = useState(deliveryError);
     const confirm = useMutation({
-        mutationFn: async (code: string) => axiosInstance.post("/auth/email-verification/confirm", { code }),
+        mutationFn: async (code: string) => axiosInstance.post("/auth/email-verifications/current/confirmations", { code }),
         onSuccess: onComplete,
     });
     const resend = useMutation({
-        mutationFn: async () => (await axiosInstance.post<PasswordAuthResult>("/auth/email-verification/resend", {})).data,
+        mutationFn: async () => (await axiosInstance.post<PasswordAuthResult>("/auth/email-verifications/current/deliveries", {})).data,
         onSuccess: result => {
-            setDelivery(result.error);
+            setDelivery(result.deliveryWarning);
             setCode("");
         },
     });

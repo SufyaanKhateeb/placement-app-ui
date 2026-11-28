@@ -4,13 +4,10 @@ import { useMutation, UseMutationOptions } from "@tanstack/react-query";
 
 const logoutUser = async () => {
     try {
-        await axiosInstance.post("/logout");
+        await axiosInstance.delete("/auth/sessions/current");
     } catch (error) {
         if (axios.isAxiosError(error) && error.response?.data) {
-            if ((error.response.data.error as string).startsWith("invalid payload")) {
-                throw new Error("Invalid details.");
-            }
-            if (error.response.data.error === "invalid user, user not found") {
+            if (error.response.status === 401) {
                 throw new Error("Action not allowed. You are not logged in.");
             }
             if (error.response.status === 500) {

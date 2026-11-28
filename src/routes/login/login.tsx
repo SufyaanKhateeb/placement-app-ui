@@ -143,7 +143,7 @@ function LoginForm({ className, fromUrl, admin, ...props }: UserAuthFormProps) {
     };
 
     if (!admin && verification) {
-        return <EmailVerification deliveryError={verification.error} onComplete={completeLogin}
+        return <EmailVerification deliveryError={verification.deliveryWarning} onComplete={completeLogin}
             onCancel={() => setVerification(undefined)} />;
     }
 

@@ -10,13 +10,14 @@ type loginUserDto = {
 
 const loginUser = async (user: loginUserDto, admin: boolean) => {
     try {
-        return (await axiosInstance.post<PasswordAuthResult | null>(admin ? "/login-admin" : "/login", user)).data;
+        const response = await axiosInstance.post<PasswordAuthResult>("/auth/sessions", { ...user, mode: admin ? "admin" : "user" });
+        return response.status === 204 ? null : response.data;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response?.data) {
-            if ((error.response.data.error as string).startsWith("invalid payload")) {
-                throw new Error("Invalid details.");
+            if (error.response.data.code === "invalid_request") {
+                throw new Error(error.response.data.error || "Invalid details.");
             }
-            if (error.response.data.error === "not found, invalid email or password") {
+            if (error.response.data.code === "invalid_credentials") {
                 throw new Error("Invalid email or password.");
             }
             if (error.response.status === 500) {

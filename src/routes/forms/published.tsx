@@ -86,7 +86,8 @@ function PublishedFormContent({ id }: { id: string }) {
     const { data: user } = useGetUserQuery({ queryKey: ["getUser"] });
     const queryClient = useQueryClient();
     const path = publishedFormsPath + "/" + id;
-    const submissionPath = path + "/submission";
+    const submissionsPath = path + "/submissions";
+    const submissionPath = submissionsPath + "/mine";
     const isUser = user?.accountType === "user" && user.permissions.includes(permissions.ownSubmissions);
     const submissionKey = ["publishedForms", id, "submission", user?.id];
     const form = useQuery({
@@ -119,7 +120,7 @@ function PublishedFormContent({ id }: { id: string }) {
         try {
             const body = { version, values, ...(revision === undefined ? {} : { revision }) };
             const response = revision === undefined
-                ? await axiosInstance.post<FormSubmission>(submissionPath, body)
+                ? await axiosInstance.post<FormSubmission>(submissionsPath, body)
                 : await axiosInstance.put<FormSubmission>(submissionPath, body);
             queryClient.setQueryData(submissionKey, response.data);
             void queryClient.invalidateQueries({ queryKey: publishedFormsListKey });
