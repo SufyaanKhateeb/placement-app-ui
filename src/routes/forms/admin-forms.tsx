@@ -140,7 +140,7 @@ function FormEditor({ initialForm }: { initialForm: AdminForm }) {
                 const response = await axiosInstance.put<{ revision: number; draft: FormDefinition }>(path + "/draft", { revision, draft });
                 return { ...saved, ...response.data };
             }
-            const response = await axiosInstance.post<AdminForm>(path + (action === "publish" ? "/publish" : "/draft"), { revision });
+            const response = await axiosInstance.post<AdminForm>(path + (action === "publish" ? "/versions" : "/drafts"), { revision });
             return response.data;
         },
         onSuccess: (form, action) => {

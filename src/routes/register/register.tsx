@@ -113,7 +113,7 @@ export function RegisterForm({ className, fromUrl, invitationEmail, onInvitedAcc
     };
 
     if (!invitationEmail && verification) {
-        return <EmailVerification deliveryError={verification.error} onComplete={completeRegistration}
+        return <EmailVerification deliveryError={verification.deliveryWarning} onComplete={completeRegistration}
             onCancel={() => setVerification(undefined)} />;
     }
 

@@ -12,13 +12,13 @@ type registerUserDto = {
 
 async function registerUser(user: registerUserDto) {
     try {
-        return (await axiosInstance.post<PasswordAuthResult | null>("/register", user)).data;
+        return (await axiosInstance.post<PasswordAuthResult | null>("/users", user)).data;
     } catch (error) {
         if (axios.isAxiosError(error) && error.response?.data) {
-            if ((error.response.data.error as string).startsWith("invalid payload")) {
-                throw new Error("Invalid details.");
+            if (error.response.data.code === "invalid_request") {
+                throw new Error(error.response.data.error || "Invalid details.");
             }
-            if (error.response.data.error === `user with email ${user.email} already exists`) {
+            if (error.response.data.code === "email_unavailable") {
                 throw new Error("Account with email already exists.");
             }
             if (error.response.status === 500) {

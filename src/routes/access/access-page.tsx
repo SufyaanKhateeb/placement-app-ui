@@ -208,7 +208,7 @@ function InviteAdminPanel() {
 
 function PromoteAccount({ account }: { account: Account }) {
     const [confirming, setConfirming] = useState(false);
-    const promote = useAccessChange(() => axiosInstance.post(accessPath + "/accounts/user/" + account.id + "/promote", { email: account.email }));
+    const promote = useAccessChange(() => axiosInstance.patch(accessPath + "/accounts/user/" + account.id, { admin: true, email: account.email }));
 
     if (promote.isSuccess) return <p role="status" className="text-sm">Admin access granted. The account holder can sign in as an admin.</p>;
     if (account.admin) return null;

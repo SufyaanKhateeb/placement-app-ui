@@ -23,8 +23,8 @@ type User = z.output<typeof profileSchema>;
 
 async function getUser(): Promise<User | null> {
     try {
-        await axiosInstance.post("/refresh", {});
-        const response = await axiosInstance.get<unknown>("/user");
+        await axiosInstance.post("/auth/sessions/current/renewals", {});
+        const response = await axiosInstance.get<unknown>("/users/me");
         const profile = profileSchema.safeParse(response.data);
         if (!profile.success) {
             throw new Error("The session did not return a valid user profile.");
